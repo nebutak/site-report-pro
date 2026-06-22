@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useRouter } from 'next/navigation';
-import { KeyRound, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { KeyRound, Mail, AlertCircle, Loader2, Shield } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z
@@ -60,29 +60,65 @@ export default function LoginPage() {
     }
   };
 
+  // Floating particles data
+  const particles = [
+    { size: 4, x: '10%', y: '20%', delay: '0s', duration: '7s' },
+    { size: 3, x: '80%', y: '15%', delay: '1s', duration: '8s' },
+    { size: 5, x: '25%', y: '70%', delay: '2s', duration: '6s' },
+    { size: 3, x: '65%', y: '80%', delay: '0.5s', duration: '9s' },
+    { size: 4, x: '90%', y: '50%', delay: '1.5s', duration: '7s' },
+    { size: 6, x: '45%', y: '10%', delay: '3s', duration: '8s' },
+    { size: 3, x: '15%', y: '85%', delay: '2.5s', duration: '6s' },
+    { size: 4, x: '70%', y: '40%', delay: '0.8s', duration: '9s' },
+    { size: 5, x: '35%', y: '55%', delay: '1.2s', duration: '7s' },
+    { size: 3, x: '55%', y: '90%', delay: '2.8s', duration: '8s' },
+  ];
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background gradients */}
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-900/10 blur-[120px]" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-900/10 blur-[120px]" />
+      {/* Grid pattern overlay */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-40" />
 
-      <div className="w-full max-w-md space-y-8 z-10">
+      {/* Gradient orbs */}
+      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-blue-900/8 blur-[150px] animate-float" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-900/8 blur-[150px] animate-float" style={{ animationDelay: '3s' }} />
+      <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] rounded-full bg-purple-900/5 blur-[120px]" />
+
+      {/* Floating particles */}
+      {particles.map((p, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full bg-blue-400/10 animate-float"
+          style={{
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            left: p.x,
+            top: p.y,
+            animationDelay: p.delay,
+            animationDuration: p.duration,
+          }}
+        />
+      ))}
+
+      <div className="w-full max-w-md space-y-8 z-10 animate-fade-in-up">
         <div className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-lg shadow-indigo-500/20">
-            <KeyRound className="h-8 w-8 text-white" />
+          <div className="mx-auto flex h-18 w-18 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 shadow-2xl shadow-blue-600/25 relative group cursor-default">
+            <Shield className="h-9 w-9 text-white relative z-10" />
+            <div className="absolute inset-0 rounded-2xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 opacity-20 blur-md group-hover:opacity-30 transition-opacity duration-500" />
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold tracking-tight text-white">
-            SiteReport <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Pro</span>
+          <h2 className="mt-7 text-3xl font-extrabold tracking-tight text-white">
+            SiteReport <span className="gradient-text-primary">Pro</span>
           </h2>
           <p className="mt-2 text-sm text-slate-400">
             Hệ thống quản lý báo cáo giám sát thi công
           </p>
         </div>
 
-        {/* Card wrapper with glassmorphism styling */}
-        <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800 rounded-2xl p-8 shadow-2xl shadow-black/40">
+        {/* Card wrapper with enhanced glassmorphism */}
+        <div className="glass-card rounded-2xl p-8 shadow-2xl shadow-black/40 animate-border-glow">
           {error && (
-            <div className="mb-6 flex items-start gap-3 rounded-lg bg-red-950/50 border border-red-800/60 p-4 text-sm text-red-200">
+            <div className="mb-6 flex items-start gap-3 rounded-xl bg-red-950/50 border border-red-800/40 p-4 text-sm text-red-200 animate-fade-in-down">
               <AlertCircle className="h-5 w-5 shrink-0 text-red-400" />
               <span>{error}</span>
             </div>
@@ -94,22 +130,22 @@ export default function LoginPage() {
                 Địa chỉ email
               </label>
               <div className="relative mt-2">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Mail className="h-5 w-5 text-slate-500" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                  <Mail className="h-4.5 w-4.5 text-slate-500" />
                 </div>
                 <input
                   id="email"
                   type="email"
                   autoComplete="email"
                   {...register('email')}
-                  className={`block w-full rounded-lg bg-slate-950/80 border ${
-                    errors.email ? 'border-red-500 focus:ring-red-500' : 'border-slate-800 focus:ring-blue-500 focus:border-blue-500'
-                  } py-3 pl-10 pr-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 transition duration-200`}
+                  className={`block w-full rounded-xl bg-slate-950/80 border ${
+                    errors.email ? 'border-red-500/60 focus:ring-red-500/20' : 'border-slate-800 focus:ring-blue-500/20 focus:border-blue-500/50'
+                  } py-3 pl-11 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 transition-all duration-200`}
                   placeholder="admin@example.com"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-xs text-red-400 font-medium">{errors.email.message}</p>
+                <p className="mt-1.5 text-xs text-red-400 font-medium">{errors.email.message}</p>
               )}
             </div>
 
@@ -118,22 +154,22 @@ export default function LoginPage() {
                 Mật khẩu
               </label>
               <div className="relative mt-2">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <KeyRound className="h-5 w-5 text-slate-500" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                  <KeyRound className="h-4.5 w-4.5 text-slate-500" />
                 </div>
                 <input
                   id="password"
                   type="password"
                   autoComplete="current-password"
                   {...register('password')}
-                  className={`block w-full rounded-lg bg-slate-950/80 border ${
-                    errors.password ? 'border-red-500 focus:ring-red-500' : 'border-slate-800 focus:ring-blue-500 focus:border-blue-500'
-                  } py-3 pl-10 pr-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 transition duration-200`}
+                  className={`block w-full rounded-xl bg-slate-950/80 border ${
+                    errors.password ? 'border-red-500/60 focus:ring-red-500/20' : 'border-slate-800 focus:ring-blue-500/20 focus:border-blue-500/50'
+                  } py-3 pl-11 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 transition-all duration-200`}
                   placeholder="••••••••"
                 />
               </div>
               {errors.password && (
-                <p className="mt-1 text-xs text-red-400 font-medium">{errors.password.message}</p>
+                <p className="mt-1.5 text-xs text-red-400 font-medium">{errors.password.message}</p>
               )}
             </div>
 
@@ -141,8 +177,10 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="group relative flex w-full justify-center rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 py-3 px-4 text-sm font-semibold text-white hover:from-blue-500 hover:to-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-indigo-500/20"
+                className="group relative flex w-full justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 py-3 px-4 text-sm font-semibold text-white hover:from-blue-500 hover:to-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl hover:shadow-indigo-500/20 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer overflow-hidden"
               >
+                {/* Shimmer sweep effect */}
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -156,7 +194,7 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <div className="text-center text-xs text-slate-500">
+        <div className="text-center text-xs text-slate-600">
           &copy; {new Date().getFullYear()} SiteReport Pro. Toàn bộ bản quyền được bảo lưu.
         </div>
       </div>

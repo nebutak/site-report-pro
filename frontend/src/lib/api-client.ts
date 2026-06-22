@@ -26,20 +26,29 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-  const defaultHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  const defaultHeaders: Record<string, string> = {};
+  if (!(customOptions.body instanceof FormData)) {
+    defaultHeaders['Content-Type'] = 'application/json';
+  }
 
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
 
+  const mergedHeaders = {
+    ...defaultHeaders,
+    ...headers,
+  };
+
+  // If uploading files with FormData, the browser must set the boundary boundary automatically.
+  // We must not specify a manual Content-Type header.
+  if (customOptions.body instanceof FormData) {
+    delete (mergedHeaders as Record<string, string>)['Content-Type'];
+  }
+
   const config: RequestInit = {
     ...customOptions,
-    headers: {
-      ...defaultHeaders,
-      ...headers,
-    },
+    headers: mergedHeaders,
   };
 
   try {
@@ -87,19 +96,19 @@ export const apiClient = {
     request<T>(endpoint, {
       ...options,
       method: 'POST',
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
     }),
   put: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     request<T>(endpoint, {
       ...options,
       method: 'PUT',
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
     }),
   patch: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     request<T>(endpoint, {
       ...options,
       method: 'PATCH',
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
     }),
   delete: <T>(endpoint: string, options?: RequestOptions) =>
     request<T>(endpoint, { ...options, method: 'DELETE' }),

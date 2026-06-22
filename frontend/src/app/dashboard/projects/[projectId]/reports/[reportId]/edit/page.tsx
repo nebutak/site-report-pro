@@ -1434,11 +1434,7 @@ export default function ReportEditPage() {
     formData.append('file', file);
 
     try {
-      const response = await apiClient.post<ReportImage>(`/reports/${reportId}/images`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await apiClient.post<ReportImage>(`/reports/${reportId}/images`, formData);
       setReportImages([...reportImages, response]);
       setTabSuccessMsg('Tải lên hình ảnh thành công!');
     } catch (err) {

@@ -67,16 +67,34 @@ export default function ProjectsPage() {
     return () => clearTimeout(delayDebounceFn);
   }, [keyword, status]);
 
+  // Skeleton card component
+  const SkeletonCard = () => (
+    <div className="rounded-xl glass-card p-6 space-y-4">
+      <div className="flex items-start justify-between">
+        <div className="h-14 w-14 rounded-xl bg-slate-800 animate-shimmer" />
+        <div className="h-5 w-20 rounded bg-slate-800 animate-shimmer" />
+      </div>
+      <div className="h-5 w-3/4 rounded bg-slate-800 animate-shimmer" />
+      <div className="space-y-2 pt-3 border-t border-slate-800/40">
+        <div className="h-3 w-full rounded bg-slate-800/60 animate-shimmer" />
+        <div className="h-3 w-4/5 rounded bg-slate-800/60 animate-shimmer" />
+        <div className="h-3 w-3/5 rounded bg-slate-800/60 animate-shimmer" />
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-fade-in">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-2">
-            <FolderKanban className="h-8 w-8 text-blue-500" />
+          <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10">
+              <FolderKanban className="h-5 w-5 text-blue-400" />
+            </div>
             Danh sách dự án
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-slate-500 text-sm mt-1.5">
             Quản lý và theo dõi các dự án công trình xây dựng
           </p>
         </div>
@@ -84,27 +102,27 @@ export default function ProjectsPage() {
         {canManage && (
           <Link
             href="/dashboard/projects/new"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 shadow-lg shadow-blue-600/15 transition-all"
+            className="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-600/15 hover:shadow-blue-600/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4.5 w-4.5" />
             Thêm dự án
           </Link>
         )}
       </div>
 
       {/* Filters Toolbar */}
-      <div className="flex flex-col gap-4 sm:flex-row bg-slate-900/40 border border-slate-800 rounded-xl p-4">
+      <div className="flex flex-col gap-3 sm:flex-row glass-card rounded-xl p-3 animate-fade-in-up stagger-1">
         {/* Search */}
         <div className="relative flex-1">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Search className="h-5 w-5 text-slate-500" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+            <Search className="h-4.5 w-4.5 text-slate-500" />
           </div>
           <input
             type="text"
             placeholder="Tìm kiếm dự án theo tên hoặc mã..."
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
-            className="block w-full rounded-lg bg-slate-950/80 border border-slate-850 py-2.5 pl-10 pr-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
+            className="block w-full rounded-xl bg-slate-950/80 border border-slate-800/60 py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200 text-sm"
           />
         </div>
 
@@ -113,7 +131,7 @@ export default function ProjectsPage() {
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="block w-full rounded-lg bg-slate-950/80 border border-slate-850 py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
+            className="block w-full rounded-xl bg-slate-950/80 border border-slate-800/60 py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200 text-sm"
           >
             <option value="all">Tất cả trạng thái</option>
             <option value="ACTIVE">Hoạt động</option>
@@ -124,33 +142,38 @@ export default function ProjectsPage() {
 
       {/* Main content listing */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-3" />
-          <p className="text-slate-400 text-sm">Đang tải danh sách dự án...</p>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
         </div>
       ) : error ? (
-        <div className="rounded-xl border border-red-800/40 bg-red-950/20 p-6 text-center text-red-200">
+        <div className="rounded-xl border border-red-800/30 bg-red-950/15 p-8 text-center text-red-200 animate-fade-in">
           <p className="text-sm font-semibold">{error}</p>
         </div>
       ) : projects.length === 0 ? (
-        <div className="rounded-xl border border-slate-800 bg-slate-900/10 p-16 text-center">
-          <FolderKanban className="h-12 w-12 text-slate-700 mx-auto mb-3" />
+        <div className="rounded-xl glass-card p-16 text-center animate-fade-in-up">
+          <div className="relative inline-block mb-4">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center mx-auto border border-dashed border-slate-700 animate-pulse-glow">
+              <FolderKanban className="h-7 w-7 text-slate-600" />
+            </div>
+          </div>
           <h3 className="text-sm font-semibold text-slate-300">Không tìm thấy dự án</h3>
-          <p className="text-xs text-slate-500 mt-1">Hãy thử tìm kiếm với từ khóa khác hoặc tạo dự án mới.</p>
+          <p className="text-xs text-slate-600 mt-1.5 max-w-xs mx-auto">
+            Hãy thử tìm kiếm với từ khóa khác hoặc tạo dự án mới.
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {projects.map((project) => {
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          {projects.map((project, idx) => {
             const logoSrc = project.logoUrl ? `${BACKEND_URL}${project.logoUrl}` : null;
             return (
               <div
                 key={project.id}
-                className="group relative flex flex-col justify-between rounded-xl bg-slate-900/30 hover:bg-slate-900/50 border border-slate-850 hover:border-slate-800 p-6 shadow-sm hover:shadow-lg transition-all duration-200"
+                className={`group relative flex flex-col justify-between rounded-xl glass-card glass-card-hover p-6 transition-all duration-300 hover:-translate-y-0.5 animate-fade-in-up stagger-${Math.min(idx + 1, 6)}`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-4">
                     {/* Project Logo wrapper */}
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-slate-950/80 border border-slate-800 overflow-hidden relative">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-slate-950/80 border border-slate-800/60 overflow-hidden relative group-hover:border-slate-700 transition-colors duration-300">
                       {logoSrc ? (
                         <Image
                           src={logoSrc}
@@ -160,7 +183,7 @@ export default function ProjectsPage() {
                           unoptimized
                         />
                       ) : (
-                        <div className="text-xl font-bold bg-gradient-to-tr from-blue-500 to-indigo-500 bg-clip-text text-transparent">
+                        <div className="text-xl font-bold gradient-text-primary">
                           {project.code.substring(0, 2)}
                         </div>
                       )}
@@ -168,7 +191,7 @@ export default function ProjectsPage() {
 
                     <div className="flex flex-col items-end gap-1.5">
                       <span
-                        className={`inline-block rounded px-2 py-0.5 text-3xs font-bold ${
+                        className={`inline-block rounded-lg px-2.5 py-0.5 text-3xs font-bold ${
                           project.status === 'ACTIVE'
                             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                             : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
@@ -176,38 +199,38 @@ export default function ProjectsPage() {
                       >
                         {project.status === 'ACTIVE' ? 'Hoạt động' : 'Ngưng'}
                       </span>
-                      <span className="text-2xs font-mono text-slate-500">{project.code}</span>
+                      <span className="text-2xs font-mono text-slate-600">{project.code}</span>
                     </div>
                   </div>
 
                   <div className="mt-4">
-                    <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">
+                    <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors duration-200">
                       {project.name}
                     </h3>
                   </div>
 
                   {/* Details */}
-                  <div className="mt-4 space-y-2 border-t border-slate-900/60 pt-4 text-xs text-slate-400">
+                  <div className="mt-4 space-y-2 border-t border-slate-800/30 pt-4 text-xs text-slate-500">
                     <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4 shrink-0 text-slate-600" />
-                      <span className="truncate">Chủ đầu tư: {project.ownerName || '---'}</span>
+                      <Building className="h-3.5 w-3.5 shrink-0 text-slate-600" />
+                      <span className="truncate">Chủ đầu tư: <span className="text-slate-400">{project.ownerName || '---'}</span></span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4 shrink-0 text-slate-600" />
-                      <span className="truncate">Giám sát: {project.supervisorName || '---'}</span>
+                      <Building className="h-3.5 w-3.5 shrink-0 text-slate-600" />
+                      <span className="truncate">Giám sát: <span className="text-slate-400">{project.supervisorName || '---'}</span></span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 shrink-0 text-slate-600" />
-                      <span className="truncate">Địa điểm: {project.location || '---'}</span>
+                      <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-600" />
+                      <span className="truncate">Địa điểm: <span className="text-slate-400">{project.location || '---'}</span></span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between border-t border-slate-900 pt-4">
+                <div className="mt-5 flex items-center justify-between border-t border-slate-800/30 pt-4">
                   {canManage ? (
                     <Link
                       href={`/dashboard/projects/${project.id}/edit`}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-800 hover:border-slate-700 bg-slate-950/20 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200 transition"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-800/60 hover:border-slate-700 bg-slate-950/30 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all duration-200"
                     >
                       <Edit3 className="h-3.5 w-3.5" />
                       Sửa
@@ -218,10 +241,10 @@ export default function ProjectsPage() {
 
                   <Link
                     href={`/dashboard/projects/${project.id}`}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-blue-400 group-hover:text-blue-300 hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-blue-400 group-hover:text-blue-300 hover:underline transition"
                   >
                     Chi tiết
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-3.5 w-3.5 transform group-hover:translate-x-0.5 transition-transform" />
                   </Link>
                 </div>
               </div>
