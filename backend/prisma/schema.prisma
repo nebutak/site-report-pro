@@ -1,0 +1,233 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  roleId       Int
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  role         Role     @relation(fields: [roleId], references: [id])
+  reports      Report[] @relation("ReportCreator")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  permissions Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+}
+
+model Project {
+  id                   Int      @id @default(autoincrement())
+  name                 String
+  code                 String   @unique
+  ownerName            String?
+  supervisorName       String?
+  contractorName       String?
+  location             String?
+  logoUrl              String?
+  defaultReporterName  String?
+  defaultReceiver      String?
+  defaultCc            String?
+  status               String   @default("ACTIVE")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  reports              Report[]
+}
+
+model Report {
+  id            Int       @id @default(autoincrement())
+  projectId     Int
+  reportType    String
+  reportNo      String?
+  reportDate    DateTime
+  issueDate     DateTime?
+  title         String?
+  status        String    @default("DRAFT")
+  sourceReportId Int?
+  createdById   Int
+  approvedById  Int?
+  approvedAt    DateTime?
+  sentAt         DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project       Project   @relation(fields: [projectId], references: [id])
+  createdBy     User      @relation("ReportCreator", fields: [createdById], references: [id])
+  versions      ReportVersion[]
+  weatherRows   WeatherRow[]
+  manpowerRows  ManpowerRow[]
+  equipmentRows EquipmentRow[]
+  materialRows  MaterialRow[]
+  workItems     WorkItem[]
+  images        ReportImage[]
+  exports       ReportExport[]
+}
+
+model ReportVersion {
+  id           Int      @id @default(autoincrement())
+  reportId     Int
+  versionNo    Int
+  snapshot     Json
+  changeReason String?
+  createdById  Int
+  createdAt    DateTime @default(now())
+
+  report       Report   @relation(fields: [reportId], references: [id])
+
+  @@unique([reportId, versionNo])
+}
+
+model WeatherRow {
+  id       Int     @id @default(autoincrement())
+  reportId Int
+  period   String
+  isSunny  Boolean @default(false)
+  isRainy  Boolean @default(false)
+  isNormal Boolean @default(false)
+  wind     String?
+  wave     String?
+  swell    String?
+  note     String?
+
+  report   Report @relation(fields: [reportId], references: [id])
+}
+
+model ManpowerRow {
+  id               Int      @id @default(autoincrement())
+  reportId          Int
+  sortOrder         Int      @default(0)
+  name              String
+  unit              String?
+  previousQuantity  Decimal? @db.Decimal(18, 2)
+  changeQuantity    Decimal? @db.Decimal(18, 2)
+  todayQuantity     Decimal? @db.Decimal(18, 2)
+  managerQuantity   Decimal? @db.Decimal(18, 2)
+  staffQuantity     Decimal? @db.Decimal(18, 2)
+  overtimeQuantity  Decimal? @db.Decimal(18, 2)
+  securityQuantity  Decimal? @db.Decimal(18, 2)
+  note              String?
+
+  report            Report   @relation(fields: [reportId], references: [id])
+}
+
+model EquipmentRow {
+  id               Int      @id @default(autoincrement())
+  reportId          Int
+  sortOrder         Int      @default(0)
+  name              String   @db.Text
+  unit              String?
+  previousQuantity  Decimal? @db.Decimal(18, 2)
+  changeQuantity    Decimal? @db.Decimal(18, 2)
+  todayQuantity     Decimal? @db.Decimal(18, 2)
+  normalQuantity    Decimal? @db.Decimal(18, 2)
+  repairingQuantity Decimal? @db.Decimal(18, 2)
+  brokenQuantity    Decimal? @db.Decimal(18, 2)
+  note              String?
+
+  report            Report   @relation(fields: [reportId], references: [id])
+}
+
+model MaterialRow {
+  id        Int      @id @default(autoincrement())
+  reportId  Int
+  sortOrder Int      @default(0)
+  name      String
+  unit      String?
+  quantity  Decimal? @db.Decimal(18, 2)
+  note      String?
+
+  report    Report   @relation(fields: [reportId], references: [id])
+}
+
+model WorkItem {
+  id                            Int       @id @default(autoincrement())
+  reportId                       Int
+  parentId                       Int?
+  sortOrder                      Int       @default(0)
+  level                          Int       @default(0)
+  code                           String?
+  name                           String    @db.Text
+  unit                           String?
+  designQuantity                 Decimal?  @db.Decimal(18, 2)
+  previousAccumulatedQuantity    Decimal?  @db.Decimal(18, 2)
+  todayQuantity                  Decimal?  @db.Decimal(18, 2)
+  currentAccumulatedQuantity     Decimal?  @db.Decimal(18, 2)
+  completionPercent              Decimal?  @db.Decimal(10, 2)
+  personInCharge                 String?
+  note                           String?
+  isGroup                        Boolean   @default(false)
+  isLocked                       Boolean   @default(false)
+  formula                        Json?
+  createdAt                      DateTime  @default(now())
+  updatedAt                      DateTime  @updatedAt
+
+  report                         Report    @relation(fields: [reportId], references: [id])
+  parent                         WorkItem? @relation("WorkItemTree", fields: [parentId], references: [id])
+  children                       WorkItem[] @relation("WorkItemTree")
+}
+
+model ReportImage {
+  id           Int      @id @default(autoincrement())
+  reportId     Int
+  sectionKey   String?
+  fileUrl      String
+  thumbnailUrl String?
+  caption      String?
+  sortOrder    Int      @default(0)
+  width        Int?
+  height       Int?
+  mimeType     String?
+  sizeBytes    Int?
+  createdById  Int?
+  createdAt    DateTime @default(now())
+
+  report       Report   @relation(fields: [reportId], references: [id])
+}
+
+model ReportExport {
+  id          Int      @id @default(autoincrement())
+  reportId    Int
+  versionId   Int?
+  format      String
+  fileUrl     String
+  fileName    String
+  fileSize    Int?
+  createdById Int?
+  createdAt   DateTime @default(now())
+
+  report      Report   @relation(fields: [reportId], references: [id])
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?
+  projectId  Int?
+  reportId   Int?
+  entityType String
+  entityId   Int?
+  action     String
+  fieldName  String?
+  oldValue   String?  @db.Text
+  newValue   String?  @db.Text
+  reason     String?  @db.Text
+  createdAt  DateTime @default(now())
+}
