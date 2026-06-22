@@ -55,6 +55,7 @@ interface Report {
   reportDate: string;
   issueDate: string | null;
   title: string | null;
+  messageContent?: string | null;
   status: string;
   sourceReportId: number | null;
   createdById: number;
@@ -211,6 +212,18 @@ interface ReportImage {
   mimeType?: string | null;
 }
 
+interface ReportExport {
+  id: number;
+  reportId: number;
+  versionId: number | null;
+  format: string;
+  fileUrl: string;
+  fileName: string;
+  fileSize: number | null;
+  createdById: number | null;
+  createdAt: string;
+}
+
 const editReportSchema = z.object({
   reportNo: z.string().min(1, { message: 'Số báo cáo không được để trống' }),
   title: z.string().min(1, { message: 'Tiêu đề không được để trống' }),
@@ -219,7 +232,7 @@ const editReportSchema = z.object({
 
 type EditReportFormValues = z.infer<typeof editReportSchema>;
 
-type TabKey = 'general' | 'weather' | 'manpower' | 'equipment' | 'materials' | 'workitems' | 'images' | 'history';
+type TabKey = 'general' | 'message' | 'weather' | 'manpower' | 'equipment' | 'materials' | 'workitems' | 'images' | 'export' | 'history';
 
 export default function ReportEditPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -251,6 +264,14 @@ export default function ReportEditPage() {
   const [tabError, setTabError] = useState<string | null>(null);
   const [tabSuccessMsg, setTabSuccessMsg] = useState<string | null>(null);
 
+  // Phase 7 States
+  const [exportHistory, setExportHistory] = useState<ReportExport[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [isExportingWord, setIsExportingWord] = useState(false);
+  const [localMessageContent, setLocalMessageContent] = useState('');
+  const [isExportingTxt, setIsExportingTxt] = useState(false);
+
   // Authorization flags
   const isAdmin = user?.role === 'ADMIN';
   const isPM = user?.role === 'PROJECT_MANAGER';
@@ -280,6 +301,7 @@ export default function ReportEditPage() {
     try {
       const data = await apiClient.get<Report>(`/reports/${reportId}`);
       setReport(data);
+      setLocalMessageContent(data.messageContent || '');
 
       // Pre-fill form values
       setValue('reportNo', data.reportNo || '');
@@ -306,6 +328,7 @@ export default function ReportEditPage() {
         const data = await apiClient.get<Report>(`/reports/${reportId}`);
         if (active) {
           setReport(data);
+          setLocalMessageContent(data.messageContent || '');
           setValue('reportNo', data.reportNo || '');
           setValue('title', data.title || '');
           if (data.issueDate) {
@@ -331,6 +354,63 @@ export default function ReportEditPage() {
       active = false;
     };
   }, [reportId, setValue]);
+
+  const handleRegenerateMessage = async () => {
+    if (!reportId) return;
+    setTabError(null);
+    setTabSuccessMsg(null);
+    setTabLoading(true);
+    try {
+      const res = await apiClient.post<{ messageContent: string }>(`/reports/${reportId}/regenerate-message`, {});
+      setLocalMessageContent(res.messageContent);
+      setTabSuccessMsg('Sinh lại lời dẫn thành công!');
+      if (report) {
+        setReport({ ...report, messageContent: res.messageContent });
+      }
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setTabError(apiError.message || 'Lỗi khi sinh lại lời dẫn');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const handleSaveMessage = async () => {
+    if (!reportId) return;
+    setTabError(null);
+    setTabSuccessMsg(null);
+    setTabLoading(true);
+    try {
+      await apiClient.patch(`/reports/${reportId}`, { messageContent: localMessageContent });
+      setTabSuccessMsg('Đã lưu lời dẫn thành công!');
+      if (report) {
+        setReport({ ...report, messageContent: localMessageContent });
+      }
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setTabError(apiError.message || 'Lỗi khi lưu lời dẫn');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const handleExportTxt = async () => {
+    if (!reportId) return;
+    setTabError(null);
+    setTabSuccessMsg(null);
+    setIsExportingTxt(true);
+    try {
+      await apiClient.post<ReportExport>(`/reports/${reportId}/export`, { format: 'TXT' });
+      setTabSuccessMsg('Kết xuất báo cáo TXT thành công!');
+      const data = await apiClient.get<ReportExport[]>(`/reports/${reportId}/exports`);
+      setExportHistory(data);
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setTabError(apiError.message || 'Lỗi khi kết xuất báo cáo TXT');
+    } finally {
+      setIsExportingTxt(false);
+    }
+  };
 
   // Load Tab specific data
   useEffect(() => {
@@ -429,6 +509,11 @@ export default function ReportEditPage() {
           if (active) {
             setReportImages(data);
           }
+        } else if (activeTab === 'export') {
+          const data = await apiClient.get<ReportExport[]>(`/reports/${reportId}/exports`);
+          if (active) {
+            setExportHistory(data);
+          }
         }
       } catch (err) {
         const apiError = err as { message?: string };
@@ -442,7 +527,7 @@ export default function ReportEditPage() {
       }
     };
 
-    if (['weather', 'manpower', 'equipment', 'materials', 'workitems', 'images'].includes(activeTab)) {
+    if (['weather', 'manpower', 'equipment', 'materials', 'workitems', 'images', 'export'].includes(activeTab)) {
       void loadTabData();
     }
 
@@ -482,6 +567,60 @@ export default function ReportEditPage() {
       setError(apiError.message || `Lỗi khi thực hiện thao tác`);
     } finally {
       setIsSubmittingAction(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!reportId) return;
+    setTabError(null);
+    setTabSuccessMsg(null);
+    setIsExporting(true);
+    try {
+      await apiClient.post<ReportExport>(`/reports/${reportId}/export`, { format: 'PDF' });
+      setTabSuccessMsg('Kết xuất báo cáo PDF thành công!');
+      const data = await apiClient.get<ReportExport[]>(`/reports/${reportId}/exports`);
+      setExportHistory(data);
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setTabError(apiError.message || 'Lỗi khi kết xuất báo cáo PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (!reportId) return;
+    setTabError(null);
+    setTabSuccessMsg(null);
+    setIsExportingExcel(true);
+    try {
+      await apiClient.post<ReportExport>(`/reports/${reportId}/export`, { format: 'EXCEL' });
+      setTabSuccessMsg('Kết xuất báo cáo Excel thành công!');
+      const data = await apiClient.get<ReportExport[]>(`/reports/${reportId}/exports`);
+      setExportHistory(data);
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setTabError(apiError.message || 'Lỗi khi kết xuất báo cáo Excel');
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
+  const handleExportWord = async () => {
+    if (!reportId) return;
+    setTabError(null);
+    setTabSuccessMsg(null);
+    setIsExportingWord(true);
+    try {
+      await apiClient.post<ReportExport>(`/reports/${reportId}/export`, { format: 'WORD' });
+      setTabSuccessMsg('Kết xuất báo cáo Word thành công!');
+      const data = await apiClient.get<ReportExport[]>(`/reports/${reportId}/exports`);
+      setExportHistory(data);
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setTabError(apiError.message || 'Lỗi khi kết xuất báo cáo Word');
+    } finally {
+      setIsExportingWord(false);
     }
   };
 
@@ -1366,6 +1505,7 @@ export default function ReportEditPage() {
     if (type === 'DAILY') return 'Báo cáo ngày';
     if (type === 'SUMMARY') return 'Báo cáo tóm tắt';
     if (type === 'V2') return 'Báo cáo V2';
+    if (type === 'MESSAGE') return 'Lời dẫn';
     return type;
   };
 
@@ -1467,6 +1607,20 @@ export default function ReportEditPage() {
           Thông tin chung
         </button>
 
+        {report.reportType === 'MESSAGE' && (
+          <button
+            onClick={() => setActiveTab('message')}
+            className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'message'
+                ? 'border-blue-500 text-blue-450'
+                : 'border-transparent text-slate-450 hover:text-slate-200 hover:border-slate-800'
+            }`}
+          >
+            <FileText className="h-4 w-4" />
+            Lời dẫn
+          </button>
+        )}
+
         <button
           onClick={() => setActiveTab('weather')}
           className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
@@ -1540,6 +1694,18 @@ export default function ReportEditPage() {
         </button>
 
         <button
+          onClick={() => setActiveTab('export')}
+          className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'export'
+              ? 'border-blue-500 text-blue-450'
+              : 'border-transparent text-slate-450 hover:text-slate-200 hover:border-slate-800'
+          }`}
+        >
+          <Send className="h-4 w-4" />
+          Xuất bản
+        </button>
+
+        <button
           onClick={() => setActiveTab('history')}
           className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'history'
@@ -1554,6 +1720,76 @@ export default function ReportEditPage() {
 
       {/* Tabs Content */}
       <div className="bg-slate-900/30 border border-slate-850 rounded-2xl p-6 shadow-md min-h-[400px]">
+        {/* Tab Lời dẫn: Cho MESSAGE report */}
+        {activeTab === 'message' && report.reportType === 'MESSAGE' && (
+          <div className="space-y-6">
+            {isFinalized && (
+              <div className="flex items-start gap-3 rounded-lg bg-yellow-950/40 border border-yellow-800/40 p-3 text-xs text-yellow-200 mb-4">
+                <Lock className="h-4 w-4 shrink-0 text-yellow-450" />
+                <span>Báo cáo này đã chốt, không thể chỉnh sửa lời dẫn.</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                <FileText className="h-4 w-4 text-blue-500" />
+                Lời dẫn báo cáo
+              </h3>
+              <div className="flex items-center gap-2">
+                {!isFinalized && canEdit && (
+                  <>
+                    <button
+                      onClick={handleRegenerateMessage}
+                      disabled={tabLoading}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-800 bg-slate-955 hover:bg-slate-850 px-3 py-2 text-xs font-semibold text-slate-350 hover:text-white transition cursor-pointer"
+                    >
+                      Sinh lại lời dẫn
+                    </button>
+                    <button
+                      onClick={handleSaveMessage}
+                      disabled={tabLoading}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer"
+                    >
+                      <Save className="h-4 w-4" />
+                      Lưu lời dẫn
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {tabError && (
+              <div className="flex items-start gap-3 rounded-lg bg-red-950/50 border border-red-800/60 p-3 text-xs text-red-200">
+                <AlertCircle className="h-4 w-4 shrink-0 text-red-450" />
+                <span>{tabError}</span>
+              </div>
+            )}
+
+            {tabSuccessMsg && (
+              <div className="flex items-center gap-3 rounded-lg bg-emerald-950/40 border border-emerald-800/40 p-3 text-xs text-emerald-250">
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-450" />
+                <span>{tabSuccessMsg}</span>
+              </div>
+            )}
+
+            {tabLoading && !localMessageContent ? (
+              <div className="flex h-32 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-slate-555" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <textarea
+                  disabled={isFinalized || !canEdit}
+                  value={localMessageContent}
+                  onChange={(e) => setLocalMessageContent(e.target.value)}
+                  placeholder="Nội dung lời dẫn báo cáo..."
+                  className="w-full min-h-[400px] rounded-lg bg-slate-950/85 border border-slate-850 p-4 text-sm text-slate-202 focus:outline-none focus:ring-2 focus:ring-blue-550/20 focus:border-blue-550 transition font-mono leading-relaxed resize-y"
+                />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Tab 1: General Info Form */}
         {activeTab === 'general' && (
           <div className="space-y-6">
@@ -2891,6 +3127,192 @@ export default function ReportEditPage() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Tab 7: Export PDF Tab */}
+        {activeTab === 'export' && (
+          <div className="space-y-6">
+            {/* Alerts */}
+            {tabError && (
+              <div className="flex items-start gap-3 rounded-lg bg-red-950/50 border border-red-800/60 p-4 text-xs text-red-200">
+                <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
+                <span>{tabError}</span>
+              </div>
+            )}
+            {tabSuccessMsg && (
+              <div className="flex items-start gap-3 rounded-lg bg-emerald-950/50 border border-emerald-800/60 p-4 text-xs text-emerald-200">
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-450" />
+                <span>{tabSuccessMsg}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column: Actions and History */}
+              <div className="lg:col-span-1 space-y-6">
+                <div className="bg-slate-955/40 border border-slate-850 rounded-xl p-5 space-y-4">
+                  <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                    <Send className="h-4 w-4 text-blue-500" />
+                    Kết xuất báo cáo ngày
+                  </h3>
+                  <p className="text-3xs text-slate-400">
+                    Báo cáo ngày sẽ được biên dịch sang định dạng tài liệu PDF, Excel hoặc Word bao gồm tất cả các thông tin Nhật ký công trình trong ngày.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <button
+                      onClick={handleExportPdf}
+                      disabled={isExporting || isExportingExcel || isExportingWord || isExportingTxt}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 py-2 px-4 text-xs font-semibold text-white transition cursor-pointer"
+                    >
+                      {isExporting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Đang kết xuất PDF...
+                        </>
+                      ) : (
+                        <>
+                          Kết xuất PDF (A4)
+                        </>
+                      )}
+                    </button>
+
+                    {report.reportType === 'MESSAGE' && (
+                      <button
+                        onClick={handleExportTxt}
+                        disabled={isExporting || isExportingExcel || isExportingWord || isExportingTxt}
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-600 hover:bg-slate-550 disabled:bg-slate-800 disabled:opacity-50 py-2 px-4 text-xs font-semibold text-white transition cursor-pointer"
+                      >
+                        {isExportingTxt ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Đang kết xuất TXT...
+                          </>
+                        ) : (
+                          <>
+                            Kết xuất TXT (.txt)
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    <button
+                      onClick={handleExportExcel}
+                      disabled={isExporting || isExportingExcel || isExportingWord || isExportingTxt}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-555 disabled:bg-emerald-800 disabled:opacity-50 py-2 px-4 text-xs font-semibold text-white transition cursor-pointer"
+                    >
+                      {isExportingExcel ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Đang kết xuất Excel...
+                        </>
+                      ) : (
+                        <>
+                          Kết xuất Excel (.xlsx)
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={handleExportWord}
+                      disabled={isExporting || isExportingExcel || isExportingWord || isExportingTxt}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-550 disabled:bg-indigo-850 disabled:opacity-50 py-2 px-4 text-xs font-semibold text-white transition cursor-pointer"
+                    >
+                      {isExportingWord ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Đang kết xuất Word...
+                        </>
+                      ) : (
+                        <>
+                          Kết xuất Word (.docx)
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Export History list */}
+                <div className="bg-slate-950/40 border border-slate-850 rounded-xl p-5 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-200">Lịch sử xuất bản</h4>
+                  {exportHistory.length === 0 ? (
+                    <div className="text-center py-6 border border-dashed border-slate-850 rounded-lg text-3xs text-slate-500">
+                      Chưa có tệp nào được xuất bản.
+                    </div>
+                  ) : (
+                    <div className="space-y-3.5 max-h-80 overflow-y-auto pr-1">
+                      {exportHistory.map((exp) => {
+                        const sizeMB = exp.fileSize ? (exp.fileSize / (1024 * 1024)).toFixed(2) : '---';
+                        const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL
+                          ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '')
+                          : 'http://localhost:3001';
+                        const downloadUrl = `${backendBaseUrl}${exp.fileUrl}`;
+                        
+                        return (
+                          <div
+                            key={exp.id}
+                            className="flex items-center justify-between border-b border-slate-850/60 pb-3 last:border-b-0 last:pb-0"
+                          >
+                            <div className="space-y-1 min-w-0 pr-2">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className={`text-[8px] font-bold px-1.5 py-0.25 rounded border shrink-0 ${
+                                  exp.format === 'EXCEL'
+                                    ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/40'
+                                    : exp.format === 'WORD'
+                                    ? 'bg-indigo-950/40 text-indigo-400 border-indigo-800/40'
+                                    : exp.format === 'TXT'
+                                    ? 'bg-slate-950/40 text-slate-400 border-slate-800/40'
+                                    : 'bg-blue-950/40 text-blue-400 border-blue-800/40'
+                                }`}>
+                                  {exp.format || 'PDF'}
+                                </span>
+                                <p className="text-3xs font-medium text-slate-250 truncate" title={exp.fileName}>
+                                  {exp.fileName}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
+                                <span>{sizeMB} MB</span>
+                                <span>•</span>
+                                <span>{new Date(exp.createdAt).toLocaleString('vi-VN')}</span>
+                              </div>
+                            </div>
+                            <a
+                              href={downloadUrl}
+                              download
+                              target="_blank"
+                              rel="noreferrer"
+                              className="h-8 px-3 inline-flex items-center justify-center rounded bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-3xs font-medium text-slate-300 hover:text-white transition"
+                            >
+                              Tải về
+                            </a>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: Live PDF-HTML Preview inside an iframe */}
+              <div className="lg:col-span-2 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-slate-300">Xem trước bản in (A4 Preview)</h4>
+                  <span className="text-[10px] text-slate-500">Mẫu báo cáo mặc định</span>
+                </div>
+                
+                <div className="border border-slate-850 rounded-xl overflow-hidden bg-white h-[650px] shadow-inner relative">
+                  <iframe
+                    src={`${
+                      process.env.NEXT_PUBLIC_API_URL
+                        ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '')
+                        : 'http://localhost:3001'
+                    }/api/reports/${reportId}/preview`}
+                    className="w-full h-full border-0"
+                    title="Báo cáo ngày - Xem trước"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

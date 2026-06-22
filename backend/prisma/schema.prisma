@@ -61,6 +61,7 @@ model Report {
   reportDate    DateTime
   issueDate     DateTime?
   title         String?
+  messageContent String?   @db.Text
   status        String    @default("DRAFT")
   sourceReportId Int?
   createdById   Int

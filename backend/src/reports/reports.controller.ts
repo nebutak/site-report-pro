@@ -14,10 +14,12 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import type { Request } from 'express';
 import { existsSync, mkdirSync } from 'fs';
 import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
@@ -341,5 +343,66 @@ export class ReportsController {
       'REPORTER',
     ]);
     return this.reportsService.deleteImage(imageId, reqUser.id);
+  }
+
+  @Get(':id/preview')
+  async previewReport(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: unknown,
+    @Req() req: Request,
+  ) {
+    this.checkRoles(user, ['ADMIN', 'PROJECT_MANAGER', 'REPORTER', 'REVIEWER']);
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    return this.reportsService.generateReportHtml(id, baseUrl);
+  }
+
+  @Get(':id/exports')
+  async getReportExports(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: unknown,
+  ) {
+    this.checkRoles(user, ['ADMIN', 'PROJECT_MANAGER', 'REPORTER', 'REVIEWER']);
+    return this.reportsService.getReportExports(id);
+  }
+
+  @Post(':id/regenerate-message')
+  async regenerateMessage(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: unknown,
+  ) {
+    const reqUser = this.checkRoles(user, [
+      'ADMIN',
+      'PROJECT_MANAGER',
+      'REPORTER',
+    ]);
+    return this.reportsService.regenerateMessageContent(id, reqUser.id);
+  }
+
+  @Post(':id/export')
+  async exportReport(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('format') format: string,
+    @CurrentUser() user: unknown,
+    @Req() req: Request,
+  ) {
+    const reqUser = this.checkRoles(user, [
+      'ADMIN',
+      'PROJECT_MANAGER',
+      'REPORTER',
+    ]);
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    if (format === 'PDF') {
+      return this.reportsService.exportReportToPdf(id, reqUser.id, baseUrl);
+    } else if (format === 'EXCEL') {
+      return this.reportsService.exportReportToExcel(id, reqUser.id);
+    } else if (format === 'WORD') {
+      return this.reportsService.exportReportToWord(id, reqUser.id);
+    } else if (format === 'TXT') {
+      return this.reportsService.exportReportToTxt(id, reqUser.id);
+    } else {
+      throw new BadRequestException(
+        'Định dạng xuất bản không hợp lệ (chỉ hỗ trợ PDF, EXCEL, WORD, TXT)',
+      );
+    }
   }
 }

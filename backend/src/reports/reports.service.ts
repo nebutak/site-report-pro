@@ -14,8 +14,17 @@ import { UpdateWorkItemDto } from './dto/update-work-item.dto';
 import { UpdateImagesDto } from './dto/update-images.dto';
 import { Prisma } from '@prisma/client';
 import sharp from 'sharp';
+import puppeteer from 'puppeteer';
 import { existsSync, mkdirSync, promises as fsPromises } from 'fs';
 import { join } from 'path';
+import { generateDailyReportHtml } from './reports-pdf.helper';
+import { generateDailyReportExcel } from './reports-excel.helper';
+import { generateDailyReportWord } from './reports-word.helper';
+import {
+  generateDailyReportMessageText,
+  generateDailyReportMessageHtml,
+  generateDailyReportMessageWord,
+} from './reports-message.helper';
 
 @Injectable()
 export class ReportsService {
@@ -90,6 +99,7 @@ export class ReportsService {
         defaultReportNo,
         defaultTitle,
         userId,
+        createReportDto.reportType,
       );
     }
 
@@ -255,6 +265,10 @@ export class ReportsService {
       data.issueDate = updateReportDto.issueDate
         ? this.normalizeDate(updateReportDto.issueDate)
         : null;
+    }
+
+    if (updateReportDto.messageContent !== undefined) {
+      data.messageContent = updateReportDto.messageContent;
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -423,21 +437,31 @@ export class ReportsService {
     reportNo: string,
     title: string,
     userId: number,
+    targetReportType?: string,
   ) {
     const source = await this.findOne(sourceId);
 
     return this.prisma.$transaction(async (tx) => {
       // 1. Create Report header
+      const targetType = targetReportType || source.reportType;
+
+      let messageContent: string | null = null;
+      if (targetType === 'MESSAGE') {
+        const sourceData = await this.getReportDataForExport(sourceId);
+        messageContent = generateDailyReportMessageText(sourceData);
+      }
+
       const newReport = await tx.report.create({
         data: {
           projectId: source.projectId,
-          reportType: source.reportType,
+          reportType: targetType,
           reportDate: targetDate,
           reportNo,
           title,
           status: 'DRAFT',
           createdById: userId,
           sourceReportId: sourceId,
+          messageContent,
         },
       });
 
@@ -558,6 +582,28 @@ export class ReportsService {
 
           idMap.set(item.id, created.id);
         }
+      }
+
+      // Clone ReportImages
+      const sourceImages = await tx.reportImage.findMany({
+        where: { reportId: sourceId },
+      });
+      if (sourceImages.length > 0) {
+        await tx.reportImage.createMany({
+          data: sourceImages.map((img) => ({
+            reportId: newReport.id,
+            sectionKey: img.sectionKey,
+            fileUrl: img.fileUrl,
+            thumbnailUrl: img.thumbnailUrl,
+            caption: img.caption,
+            sortOrder: img.sortOrder,
+            width: img.width,
+            height: img.height,
+            mimeType: img.mimeType,
+            sizeBytes: img.sizeBytes,
+            createdById: userId,
+          })),
+        });
       }
 
       // 7. Write audit log
@@ -1355,5 +1401,349 @@ export class ReportsService {
     });
 
     return { success: true };
+  }
+
+  async getReportDataForExport(reportId: number) {
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+      include: {
+        project: true,
+        createdBy: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+        weatherRows: true,
+        manpowerRows: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        equipmentRows: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        materialRows: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        workItems: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        images: {
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
+    });
+
+    if (!report) {
+      throw new NotFoundException('Không tìm thấy báo cáo yêu cầu');
+    }
+
+    return report;
+  }
+
+  async generateReportHtml(reportId: number, baseUrl: string) {
+    const reportData = await this.getReportDataForExport(reportId);
+    if (reportData.reportType === 'MESSAGE') {
+      let content = reportData.messageContent;
+      if (!content) {
+        content = generateDailyReportMessageText(reportData);
+      }
+      return generateDailyReportMessageHtml(reportData, content);
+    }
+    return generateDailyReportHtml(reportData, baseUrl);
+  }
+
+  async exportReportToPdf(reportId: number, userId: number, baseUrl: string) {
+    const report = await this.findOne(reportId);
+
+    // 1. Generate HTML content
+    const htmlContent = await this.generateReportHtml(reportId, baseUrl);
+
+    // 2. Setup export directory
+    const exportDir = './uploads/exports';
+    if (!existsSync(exportDir)) {
+      mkdirSync(exportDir, { recursive: true });
+    }
+
+    // 3. Create filename
+    const dateStr = report.reportDate.toISOString().slice(0, 10);
+    const code = report.project.code.replace(/[^a-zA-Z0-9_-]/g, '');
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+
+    let prefix = 'BC_NGAY';
+    if (report.reportType === 'MESSAGE') {
+      prefix = 'LOI_DAN';
+    } else if (report.reportType === 'V2') {
+      prefix = 'BC_V2';
+    }
+    const fileName = `${prefix}_${code}_${dateStr}_${uniqueSuffix}.pdf`;
+    const filePath = join(exportDir, fileName);
+
+    // 4. Render PDF using Puppeteer
+    try {
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'load' });
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
+        displayHeaderFooter: true,
+        headerTemplate: '<span></span>',
+        footerTemplate:
+          '<div style="font-size: 8px; width: 100%; text-align: center; color: #666; font-family: Arial;">Trang <span class="pageNumber"></span> / <span class="totalPages"></span></div>',
+      });
+      await browser.close();
+
+      // Write to disk
+      await fsPromises.writeFile(filePath, pdfBuffer);
+
+      // 5. Save ReportExport metadata
+      const fileUrl = `/uploads/exports/${fileName}`;
+      const created = await this.prisma.reportExport.create({
+        data: {
+          reportId,
+          format: 'PDF',
+          fileUrl,
+          fileName,
+          fileSize: pdfBuffer.length,
+          createdById: userId,
+        },
+      });
+
+      // 6. Log AuditLog
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          projectId: report.projectId,
+          reportId,
+          entityType: 'ReportExport',
+          entityId: created.id,
+          action: 'EXPORT_REPORT',
+          newValue: JSON.stringify(created),
+          reason: 'Kết xuất báo cáo ngày sang định dạng PDF',
+        },
+      });
+
+      return created;
+    } catch (err) {
+      throw new BadRequestException(
+        `Không thể kết xuất PDF: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  async exportReportToExcel(reportId: number, userId: number) {
+    const report = await this.findOne(reportId);
+    const reportData = await this.getReportDataForExport(reportId);
+
+    const exportDir = './uploads/exports';
+    if (!existsSync(exportDir)) {
+      mkdirSync(exportDir, { recursive: true });
+    }
+
+    const dateStr = report.reportDate.toISOString().slice(0, 10);
+    const code = report.project.code.replace(/[^a-zA-Z0-9_-]/g, '');
+    const timestamp = Date.now();
+    const fileName = `BC_KLTC_NGAY_${code}_${dateStr}_${timestamp}.xlsx`;
+    const filePath = join(exportDir, fileName);
+
+    try {
+      const excelBuffer = await generateDailyReportExcel(reportData);
+
+      await fsPromises.writeFile(filePath, excelBuffer);
+
+      const fileUrl = `/uploads/exports/${fileName}`;
+      const created = await this.prisma.reportExport.create({
+        data: {
+          reportId,
+          format: 'EXCEL',
+          fileUrl,
+          fileName,
+          fileSize: excelBuffer.length,
+          createdById: userId,
+        },
+      });
+
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          projectId: report.projectId,
+          reportId,
+          entityType: 'ReportExport',
+          entityId: created.id,
+          action: 'EXPORT_REPORT',
+          newValue: JSON.stringify(created),
+          reason: 'Kết xuất báo cáo ngày sang định dạng Excel',
+        },
+      });
+
+      return created;
+    } catch (err) {
+      throw new BadRequestException(
+        `Không thể kết xuất Excel: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  async exportReportToWord(reportId: number, userId: number) {
+    const report = await this.findOne(reportId);
+    const reportData = await this.getReportDataForExport(reportId);
+
+    const exportDir = './uploads/exports';
+    if (!existsSync(exportDir)) {
+      mkdirSync(exportDir, { recursive: true });
+    }
+
+    const dateStr = report.reportDate.toISOString().slice(0, 10);
+    const code = report.project.code.replace(/[^a-zA-Z0-9_-]/g, '');
+    const timestamp = Date.now();
+
+    let fileName = `BCTT_${code}_${dateStr}_${timestamp}.docx`;
+    if (report.reportType === 'MESSAGE') {
+      fileName = `LOI_DAN_${code}_${dateStr}_${timestamp}.docx`;
+    }
+    const filePath = join(exportDir, fileName);
+
+    try {
+      let wordBuffer: Buffer;
+      if (report.reportType === 'MESSAGE') {
+        let content = reportData.messageContent;
+        if (!content) {
+          content = generateDailyReportMessageText(reportData);
+        }
+        wordBuffer = await generateDailyReportMessageWord(reportData, content);
+      } else {
+        wordBuffer = await generateDailyReportWord(reportData);
+      }
+
+      await fsPromises.writeFile(filePath, wordBuffer);
+
+      const fileUrl = `/uploads/exports/${fileName}`;
+      const created = await this.prisma.reportExport.create({
+        data: {
+          reportId,
+          format: 'WORD',
+          fileUrl,
+          fileName,
+          fileSize: wordBuffer.length,
+          createdById: userId,
+        },
+      });
+
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          projectId: report.projectId,
+          reportId,
+          entityType: 'ReportExport',
+          entityId: created.id,
+          action: 'EXPORT_REPORT',
+          newValue: JSON.stringify(created),
+          reason: 'Kết xuất báo cáo ngày sang định dạng Word',
+        },
+      });
+
+      return created;
+    } catch (err) {
+      throw new BadRequestException(
+        `Không thể kết xuất Word: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  async getReportExports(reportId: number) {
+    return this.prisma.reportExport.findMany({
+      where: { reportId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async regenerateMessageContent(reportId: number, userId: number) {
+    const report = await this.findOne(reportId);
+    const reportData = await this.getReportDataForExport(reportId);
+    const newContent = generateDailyReportMessageText(reportData);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.report.update({
+        where: { id: reportId },
+        data: { messageContent: newContent },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          projectId: report.projectId,
+          reportId: report.id,
+          entityType: 'Report',
+          entityId: report.id,
+          action: 'REGENERATE_MESSAGE',
+          oldValue: report.messageContent,
+          newValue: newContent,
+          reason: 'Sinh lại lời dẫn báo cáo',
+        },
+      });
+
+      return { messageContent: newContent };
+    });
+  }
+
+  async exportReportToTxt(reportId: number, userId: number) {
+    const report = await this.findOne(reportId);
+    const reportData = await this.getReportDataForExport(reportId);
+
+    let content = report.messageContent;
+    if (!content) {
+      content = generateDailyReportMessageText(reportData);
+    }
+
+    const exportDir = './uploads/exports';
+    if (!existsSync(exportDir)) {
+      mkdirSync(exportDir, { recursive: true });
+    }
+
+    const dateStr = report.reportDate.toISOString().slice(0, 10);
+    const code = report.project.code.replace(/[^a-zA-Z0-9_-]/g, '');
+    const timestamp = Date.now();
+    const fileName = `LOI_DAN_${code}_${dateStr}_${timestamp}.txt`;
+    const filePath = join(exportDir, fileName);
+
+    try {
+      const txtBuffer = Buffer.from(content, 'utf8');
+      await fsPromises.writeFile(filePath, txtBuffer);
+
+      const fileUrl = `/uploads/exports/${fileName}`;
+      const created = await this.prisma.reportExport.create({
+        data: {
+          reportId,
+          format: 'TXT',
+          fileUrl,
+          fileName,
+          fileSize: txtBuffer.length,
+          createdById: userId,
+        },
+      });
+
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          projectId: report.projectId,
+          reportId,
+          entityType: 'ReportExport',
+          entityId: created.id,
+          action: 'EXPORT_REPORT',
+          newValue: JSON.stringify(created),
+          reason: 'Kết xuất báo cáo lời dẫn sang định dạng TXT',
+        },
+      });
+
+      return created;
+    } catch (err) {
+      throw new BadRequestException(
+        `Không thể kết xuất TXT: ${(err as Error).message}`,
+      );
+    }
   }
 }
