@@ -10,6 +10,7 @@ import { UpdateWeatherDto } from './dto/update-weather.dto';
 import { UpdateManpowerDto } from './dto/update-manpower.dto';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
+import { UpdateWorkItemDto } from './dto/update-work-item.dto';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -954,6 +955,209 @@ export class ReportsService {
       });
 
       return tx.materialRow.findMany({
+        where: { reportId },
+        orderBy: { sortOrder: 'asc' },
+      });
+    });
+  }
+
+  async getWorkItems(reportId: number) {
+    return this.prisma.workItem.findMany({
+      where: { reportId },
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
+
+  async updateWorkItems(
+    reportId: number,
+    dto: UpdateWorkItemDto,
+    userId: number,
+  ) {
+    const report = await this.findOne(reportId);
+
+    if (report.status === 'APPROVED' || report.status === 'SENT') {
+      throw new BadRequestException(
+        'Báo cáo đã được duyệt hoặc gửi, không thể chỉnh sửa hạng mục công việc',
+      );
+    }
+
+    // 1. Calculate values for group rows recursively
+    // Build a children map and root items list using unique identifiers (uid)
+    const childrenMap = new Map<string, typeof dto.rows>();
+    const rootUids: string[] = [];
+
+    for (const r of dto.rows) {
+      const uid = r.id ? String(r.id) : r.tempId;
+      if (!uid) continue;
+
+      let puid: string | null = null;
+      if (r.parentId && r.parentId > 0) {
+        puid = String(r.parentId);
+      } else if (r.tempParentId) {
+        puid = r.tempParentId;
+      }
+
+      if (puid) {
+        if (!childrenMap.has(puid)) {
+          childrenMap.set(puid, []);
+        }
+        childrenMap.get(puid)!.push(r);
+      } else {
+        rootUids.push(uid);
+      }
+    }
+
+    const computeTotals = (uid: string) => {
+      const row = dto.rows.find(
+        (r) => (r.id ? String(r.id) : r.tempId) === uid,
+      );
+      if (!row) return;
+
+      if (row.isGroup) {
+        const children = childrenMap.get(uid) || [];
+        let designSum = 0;
+        let prevSum = 0;
+        let todaySum = 0;
+        let currentSum = 0;
+        let hasAnyChild = false;
+
+        for (const child of children) {
+          const childUid = child.id ? String(child.id) : child.tempId;
+          if (childUid) {
+            computeTotals(childUid);
+            designSum += child.designQuantity || 0;
+            prevSum += child.previousAccumulatedQuantity || 0;
+            todaySum += child.todayQuantity || 0;
+            currentSum += child.currentAccumulatedQuantity || 0;
+            hasAnyChild = true;
+          }
+        }
+
+        row.designQuantity = hasAnyChild ? designSum : 0;
+        row.previousAccumulatedQuantity = hasAnyChild ? prevSum : 0;
+        row.todayQuantity = hasAnyChild ? todaySum : 0;
+        row.currentAccumulatedQuantity = hasAnyChild ? currentSum : 0;
+        row.completionPercent =
+          row.designQuantity > 0
+            ? (row.currentAccumulatedQuantity / row.designQuantity) * 100
+            : null;
+      } else {
+        const prev = row.previousAccumulatedQuantity || 0;
+        const today = row.todayQuantity || 0;
+        row.currentAccumulatedQuantity = prev + today;
+        row.completionPercent =
+          row.designQuantity && row.designQuantity > 0
+            ? (row.currentAccumulatedQuantity / row.designQuantity) * 100
+            : null;
+      }
+    };
+
+    for (const rootUid of rootUids) {
+      computeTotals(rootUid);
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.workItem.findMany({
+        where: { reportId },
+      });
+
+      const existingIds = existing.map((e) => e.id);
+      const incomingIds = dto.rows
+        .map((r) => r.id)
+        .filter((id): id is number => !!id && id > 0);
+
+      const idsToDelete = existingIds.filter((id) => !incomingIds.includes(id));
+      if (idsToDelete.length > 0) {
+        // Delete child rows first (level descending) to avoid self-referencing foreign key issues
+        const deletedItems = existing
+          .filter((e) => idsToDelete.includes(e.id))
+          .sort((a, b) => b.level - a.level);
+        for (const item of deletedItems) {
+          await tx.workItem.delete({
+            where: { id: item.id },
+          });
+        }
+      }
+
+      // Sort rows by level ascending to ensure parents are created/updated first
+      const sortedRows = [...dto.rows].sort((a, b) => a.level - b.level);
+      const idMap = new Map<string | number, number>();
+
+      for (const r of sortedRows) {
+        let newParentId: number | null = null;
+        if (r.parentId && r.parentId > 0) {
+          newParentId = r.parentId;
+        } else if (r.tempParentId) {
+          newParentId = idMap.get(r.tempParentId) || null;
+        }
+
+        const data = {
+          reportId,
+          parentId: newParentId,
+          sortOrder: r.sortOrder,
+          level: r.level,
+          code: r.code || null,
+          name: r.name,
+          unit: r.unit || null,
+          designQuantity:
+            r.designQuantity !== undefined && r.designQuantity !== null
+              ? new Prisma.Decimal(r.designQuantity)
+              : null,
+          previousAccumulatedQuantity:
+            r.previousAccumulatedQuantity !== undefined &&
+            r.previousAccumulatedQuantity !== null
+              ? new Prisma.Decimal(r.previousAccumulatedQuantity)
+              : null,
+          todayQuantity:
+            r.todayQuantity !== undefined && r.todayQuantity !== null
+              ? new Prisma.Decimal(r.todayQuantity)
+              : null,
+          currentAccumulatedQuantity:
+            r.currentAccumulatedQuantity !== undefined &&
+            r.currentAccumulatedQuantity !== null
+              ? new Prisma.Decimal(r.currentAccumulatedQuantity)
+              : null,
+          completionPercent:
+            r.completionPercent !== undefined && r.completionPercent !== null
+              ? new Prisma.Decimal(r.completionPercent)
+              : null,
+          personInCharge: r.personInCharge || null,
+          note: r.note || null,
+          isGroup: r.isGroup,
+          isLocked: r.isLocked,
+          formula: (r.formula as Prisma.InputJsonValue) ?? null,
+        };
+
+        if (r.id && r.id > 0) {
+          await tx.workItem.update({
+            where: { id: r.id },
+            data,
+          });
+          idMap.set(r.id, r.id);
+        } else {
+          const created = await tx.workItem.create({
+            data,
+          });
+          if (r.tempId) {
+            idMap.set(r.tempId, created.id);
+          }
+        }
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          projectId: report.projectId,
+          reportId,
+          entityType: 'WorkItem',
+          entityId: reportId,
+          action: 'UPDATE_WORK_ITEMS',
+          newValue: JSON.stringify(dto.rows),
+          reason: 'Cập nhật bảng khối lượng thi công',
+        },
+      });
+
+      return tx.workItem.findMany({
         where: { reportId },
         orderBy: { sortOrder: 'asc' },
       });

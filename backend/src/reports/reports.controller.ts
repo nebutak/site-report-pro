@@ -20,6 +20,7 @@ import { UpdateWeatherDto } from './dto/update-weather.dto';
 import { UpdateManpowerDto } from './dto/update-manpower.dto';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
+import { UpdateWorkItemDto } from './dto/update-work-item.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
@@ -229,5 +230,24 @@ export class ReportsController {
       'REPORTER',
     ]);
     return this.reportsService.updateMaterials(id, dto, reqUser.id);
+  }
+
+  @Get(':id/work-items')
+  getWorkItems(@Param('id', ParseIntPipe) id: number) {
+    return this.reportsService.getWorkItems(id);
+  }
+
+  @Put(':id/work-items')
+  updateWorkItems(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateWorkItemDto,
+    @CurrentUser() user: unknown,
+  ) {
+    const reqUser = this.checkRoles(user, [
+      'ADMIN',
+      'PROJECT_MANAGER',
+      'REPORTER',
+    ]);
+    return this.reportsService.updateWorkItems(id, dto, reqUser.id);
   }
 }

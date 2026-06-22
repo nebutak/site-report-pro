@@ -158,6 +158,48 @@ interface ApiMaterialRow {
   note: string | null;
 }
 
+interface WorkItemRow {
+  id?: number;
+  tempId?: string;
+  parentId?: number | null;
+  tempParentId?: string | null;
+  sortOrder: number;
+  level: number;
+  code: string | null;
+  name: string;
+  unit: string | null;
+  designQuantity: number | null;
+  previousAccumulatedQuantity: number | null;
+  todayQuantity: number | null;
+  currentAccumulatedQuantity: number | null;
+  completionPercent: number | null;
+  personInCharge: string | null;
+  note: string | null;
+  isGroup: boolean;
+  isLocked: boolean;
+  formula: unknown;
+}
+
+interface ApiWorkItemRow {
+  id: number;
+  parentId: number | null;
+  sortOrder: number;
+  level: number;
+  code: string | null;
+  name: string;
+  unit: string | null;
+  designQuantity: string | number | null;
+  previousAccumulatedQuantity: string | number | null;
+  todayQuantity: string | number | null;
+  currentAccumulatedQuantity: string | number | null;
+  completionPercent: string | number | null;
+  personInCharge: string | null;
+  note: string | null;
+  isGroup: boolean;
+  isLocked: boolean;
+  formula: unknown;
+}
+
 const editReportSchema = z.object({
   reportNo: z.string().min(1, { message: 'Số báo cáo không được để trống' }),
   title: z.string().min(1, { message: 'Tiêu đề không được để trống' }),
@@ -182,11 +224,14 @@ export default function ReportEditPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('general');
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
 
-  // Phase 4 States
+  // Phase 4 & 5 States
   const [weatherRows, setWeatherRows] = useState<WeatherRow[]>([]);
   const [manpowerRows, setManpowerRows] = useState<ManpowerRow[]>([]);
   const [equipmentRows, setEquipmentRows] = useState<EquipmentRow[]>([]);
   const [materialRows, setMaterialRows] = useState<MaterialRow[]>([]);
+  const [workItemRows, setWorkItemRows] = useState<WorkItemRow[]>([]);
+  const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
+  const [excelPasteText, setExcelPasteText] = useState('');
 
   const [tabLoading, setTabLoading] = useState(false);
   const [tabError, setTabError] = useState<string | null>(null);
@@ -342,6 +387,29 @@ export default function ReportEditPage() {
               note: mat.note || '',
             })));
           }
+        } else if (activeTab === 'workitems') {
+          const data = await apiClient.get<ApiWorkItemRow[]>(`/reports/${reportId}/work-items`);
+          if (active) {
+            setWorkItemRows(data.map(w => ({
+              id: w.id,
+              parentId: w.parentId,
+              sortOrder: w.sortOrder,
+              level: w.level,
+              code: w.code,
+              name: w.name,
+              unit: w.unit,
+              designQuantity: w.designQuantity ? Number(w.designQuantity) : null,
+              previousAccumulatedQuantity: w.previousAccumulatedQuantity ? Number(w.previousAccumulatedQuantity) : null,
+              todayQuantity: w.todayQuantity ? Number(w.todayQuantity) : null,
+              currentAccumulatedQuantity: w.currentAccumulatedQuantity ? Number(w.currentAccumulatedQuantity) : null,
+              completionPercent: w.completionPercent ? Number(w.completionPercent) : null,
+              personInCharge: w.personInCharge,
+              note: w.note,
+              isGroup: w.isGroup,
+              isLocked: w.isLocked,
+              formula: w.formula,
+            })));
+          }
         }
       } catch (err) {
         const apiError = err as { message?: string };
@@ -355,7 +423,7 @@ export default function ReportEditPage() {
       }
     };
 
-    if (['weather', 'manpower', 'equipment', 'materials'].includes(activeTab)) {
+    if (['weather', 'manpower', 'equipment', 'materials', 'workitems'].includes(activeTab)) {
       void loadTabData();
     }
 
@@ -715,6 +783,401 @@ export default function ReportEditPage() {
       setTabError(apiError.message || 'Lỗi khi lưu dữ liệu vật liệu');
     } finally {
       setTabLoading(false);
+    }
+  };
+
+  // Work Items handlers
+  const recalculateWorkItemTotals = (rows: WorkItemRow[]): WorkItemRow[] => {
+    const newRows = rows.map(r => ({ ...r }));
+    
+    const calcRow = (idx: number) => {
+      const row = newRows[idx];
+      if (!row) return;
+
+      if (row.isGroup) {
+        let designSum = 0;
+        let prevSum = 0;
+        let todaySum = 0;
+        let currentSum = 0;
+        let hasAnyChild = false;
+
+        for (let i = idx + 1; i < newRows.length; i++) {
+          const child = newRows[i];
+          if (child.level <= row.level) break;
+          
+          if (child.level === row.level + 1) {
+            if (child.isGroup) {
+              calcRow(i);
+            } else {
+              const childPrev = child.previousAccumulatedQuantity || 0;
+              const childToday = child.todayQuantity || 0;
+              child.currentAccumulatedQuantity = childPrev + childToday;
+              child.completionPercent = (child.designQuantity && child.designQuantity > 0)
+                ? (child.currentAccumulatedQuantity / child.designQuantity) * 100
+                : null;
+            }
+            
+            designSum += child.designQuantity || 0;
+            prevSum += child.previousAccumulatedQuantity || 0;
+            todaySum += child.todayQuantity || 0;
+            currentSum += child.currentAccumulatedQuantity || 0;
+            hasAnyChild = true;
+          }
+        }
+
+        row.designQuantity = hasAnyChild ? designSum : 0;
+        row.previousAccumulatedQuantity = hasAnyChild ? prevSum : 0;
+        row.todayQuantity = hasAnyChild ? todaySum : 0;
+        row.currentAccumulatedQuantity = hasAnyChild ? currentSum : 0;
+        row.completionPercent = row.designQuantity > 0
+          ? (row.currentAccumulatedQuantity / row.designQuantity) * 100
+          : null;
+      } else {
+        const prev = row.previousAccumulatedQuantity || 0;
+        const today = row.todayQuantity || 0;
+        row.currentAccumulatedQuantity = prev + today;
+        row.completionPercent = (row.designQuantity && row.designQuantity > 0)
+          ? (row.currentAccumulatedQuantity / row.designQuantity) * 100
+          : null;
+      }
+    };
+
+    const groupIndices: { idx: number; level: number }[] = [];
+    newRows.forEach((r, i) => {
+      if (r.isGroup) {
+        groupIndices.push({ idx: i, level: r.level });
+      } else {
+        const prev = r.previousAccumulatedQuantity || 0;
+        const today = r.todayQuantity || 0;
+        r.currentAccumulatedQuantity = prev + today;
+        r.completionPercent = (r.designQuantity && r.designQuantity > 0)
+          ? (r.currentAccumulatedQuantity / r.designQuantity) * 100
+          : null;
+      }
+    });
+
+    groupIndices.sort((a, b) => b.level - a.level);
+    
+    for (const grp of groupIndices) {
+      calcRow(grp.idx);
+    }
+
+    return newRows;
+  };
+
+  const handleWorkItemChange = (
+    index: number,
+    field: keyof WorkItemRow,
+    value: string | number | boolean | null
+  ) => {
+    const updated = [...workItemRows];
+    const row = { ...updated[index] };
+
+    if (field === 'name' && typeof value === 'string') {
+      row.name = value;
+    } else if (field === 'code') {
+      row.code = value as string | null;
+    } else if (field === 'unit') {
+      row.unit = value as string | null;
+    } else if (field === 'personInCharge') {
+      row.personInCharge = value as string | null;
+    } else if (field === 'note') {
+      row.note = value as string | null;
+    } else if (field === 'isGroup' && typeof value === 'boolean') {
+      row.isGroup = value;
+    } else if (field === 'isLocked' && typeof value === 'boolean') {
+      row.isLocked = value;
+    } else if (typeof value === 'number' || value === null) {
+      if (field === 'designQuantity') {
+        row.designQuantity = value;
+      } else if (field === 'previousAccumulatedQuantity') {
+        row.previousAccumulatedQuantity = value;
+      } else if (field === 'todayQuantity') {
+        row.todayQuantity = value;
+      }
+    }
+
+    updated[index] = row;
+    const recalculated = recalculateWorkItemTotals(updated);
+    setWorkItemRows(recalculated);
+  };
+
+  const handleAddWorkItemRow = (index?: number, type: 'sibling' | 'child' = 'sibling') => {
+    const updated = [...workItemRows];
+    const tempId = `temp-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    let insertIndex = updated.length;
+    let level = 0;
+    let parentId: number | null = null;
+    let tempParentId: string | null = null;
+
+    if (index !== undefined && index >= 0 && index < updated.length) {
+      const currentRow = updated[index];
+      
+      if (type === 'sibling') {
+        level = currentRow.level;
+        parentId = currentRow.parentId || null;
+        tempParentId = currentRow.tempParentId || null;
+        
+        insertIndex = index + 1;
+        while (insertIndex < updated.length && updated[insertIndex].level > currentRow.level) {
+          insertIndex++;
+        }
+      } else {
+        level = currentRow.level + 1;
+        if (currentRow.id) {
+          parentId = currentRow.id;
+        } else {
+          tempParentId = currentRow.tempId || null;
+        }
+        
+        currentRow.isGroup = true;
+        insertIndex = index + 1;
+      }
+    }
+
+    const newRow: WorkItemRow = {
+      tempId,
+      parentId,
+      tempParentId,
+      sortOrder: 0,
+      level,
+      code: '',
+      name: '',
+      unit: '',
+      designQuantity: 0,
+      previousAccumulatedQuantity: 0,
+      todayQuantity: 0,
+      currentAccumulatedQuantity: 0,
+      completionPercent: 0,
+      personInCharge: '',
+      note: '',
+      isGroup: false,
+      isLocked: false,
+      formula: null,
+    };
+
+    updated.splice(insertIndex, 0, newRow);
+    
+    const sorted = updated.map((r, i) => ({ ...r, sortOrder: i + 1 }));
+    const recalculated = recalculateWorkItemTotals(sorted);
+    setWorkItemRows(recalculated);
+  };
+
+  const handleDeleteWorkItemRow = (index: number) => {
+    const updated = [...workItemRows];
+    const row = updated[index];
+    if (!row) return;
+
+    let deleteCount = 1;
+    while (index + deleteCount < updated.length && updated[index + deleteCount].level > row.level) {
+      deleteCount++;
+    }
+
+    updated.splice(index, deleteCount);
+
+    const sorted = updated.map((r, i) => ({ ...r, sortOrder: i + 1 }));
+    const recalculated = recalculateWorkItemTotals(sorted);
+    setWorkItemRows(recalculated);
+  };
+
+  const handleIndentWorkItemRow = (index: number) => {
+    if (index <= 0) return;
+    const updated = [...workItemRows];
+    const row = { ...updated[index] };
+    const prevRow = updated[index - 1];
+
+    if (row.level <= prevRow.level) {
+      row.level = row.level + 1;
+      
+      if (prevRow.id) {
+        row.parentId = prevRow.id;
+        row.tempParentId = null;
+      } else {
+        row.parentId = null;
+        row.tempParentId = prevRow.tempId || null;
+      }
+      prevRow.isGroup = true;
+
+      updated[index] = row;
+      const recalculated = recalculateWorkItemTotals(updated);
+      setWorkItemRows(recalculated);
+    }
+  };
+
+  const handleOutdentWorkItemRow = (index: number) => {
+    const updated = [...workItemRows];
+    const row = { ...updated[index] };
+    if (row.level <= 0) return;
+
+    const newLevel = row.level - 1;
+    row.level = newLevel;
+
+    let newParentId: number | null = null;
+    let newTempParentId: string | null = null;
+    
+    if (newLevel > 0) {
+      for (let i = index - 1; i >= 0; i--) {
+        if (updated[i].level === newLevel - 1) {
+          if (updated[i].id) {
+            newParentId = updated[i].id || null;
+          } else {
+            newTempParentId = updated[i].tempId || null;
+          }
+          break;
+        }
+      }
+    }
+
+    row.parentId = newParentId;
+    row.tempParentId = newTempParentId;
+
+    updated[index] = row;
+    
+    const recalculated = recalculateWorkItemTotals(updated);
+    setWorkItemRows(recalculated);
+  };
+
+  const handleMoveWorkItemRow = (index: number, direction: 'up' | 'down') => {
+    const updated = [...workItemRows];
+    const row = updated[index];
+    if (!row) return;
+
+    let blockLength = 1;
+    while (index + blockLength < updated.length && updated[index + blockLength].level > row.level) {
+      blockLength++;
+    }
+
+    const block = updated.splice(index, blockLength);
+
+    let insertIndex = index;
+    if (direction === 'up') {
+      if (index === 0) {
+        updated.splice(index, 0, ...block);
+        return;
+      }
+      insertIndex = index - 1;
+      const targetLevel = updated[insertIndex].level;
+      while (insertIndex > 0 && updated[insertIndex - 1].level >= targetLevel) {
+        insertIndex--;
+      }
+    } else {
+      if (index >= updated.length) {
+        updated.splice(index, 0, ...block);
+        return;
+      }
+      const nextRow = updated[index];
+      const targetLevel = nextRow.level;
+      insertIndex = index + 1;
+      while (insertIndex < updated.length && updated[insertIndex].level > targetLevel) {
+        insertIndex++;
+      }
+    }
+
+    updated.splice(insertIndex, 0, ...block);
+
+    const sorted = updated.map((r, i) => ({ ...r, sortOrder: i + 1 }));
+    const recalculated = recalculateWorkItemTotals(sorted);
+    setWorkItemRows(recalculated);
+  };
+
+  const handleSaveWorkItems = async () => {
+    if (!reportId) return;
+    setTabError(null);
+    setTabSuccessMsg(null);
+    setTabLoading(true);
+    try {
+      if (workItemRows.some(r => !r.name.trim())) {
+        throw new Error('Tên hạng mục không được để trống ở bất kỳ dòng nào');
+      }
+      await apiClient.put(`/reports/${reportId}/work-items`, { rows: workItemRows });
+      setTabSuccessMsg('Đã lưu dữ liệu khối lượng hạng mục thi công thành công!');
+      
+      const updated = await apiClient.get<ApiWorkItemRow[]>(`/reports/${reportId}/work-items`);
+      setWorkItemRows(updated.map(w => ({
+        id: w.id,
+        parentId: w.parentId,
+        sortOrder: w.sortOrder,
+        level: w.level,
+        code: w.code,
+        name: w.name,
+        unit: w.unit,
+        designQuantity: w.designQuantity ? Number(w.designQuantity) : null,
+        previousAccumulatedQuantity: w.previousAccumulatedQuantity ? Number(w.previousAccumulatedQuantity) : null,
+        todayQuantity: w.todayQuantity ? Number(w.todayQuantity) : null,
+        currentAccumulatedQuantity: w.currentAccumulatedQuantity ? Number(w.currentAccumulatedQuantity) : null,
+        completionPercent: w.completionPercent ? Number(w.completionPercent) : null,
+        personInCharge: w.personInCharge,
+        note: w.note,
+        isGroup: w.isGroup,
+        isLocked: w.isLocked,
+        formula: w.formula,
+      })));
+    } catch (err) {
+      const apiError = err as (Error | { message?: string });
+      setTabError(apiError.message || 'Lỗi khi lưu dữ liệu hạng mục');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const handleImportExcelData = (pastedText: string) => {
+    if (!pastedText.trim()) return;
+    const lines = pastedText.split(/\r?\n/);
+    const newItems: WorkItemRow[] = [];
+    
+    let nextSortOrder = workItemRows.length > 0
+      ? Math.max(...workItemRows.map(w => w.sortOrder)) + 1
+      : 1;
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const cells = line.split('\t');
+      if (cells.length < 2) continue;
+      
+      const code = cells[0]?.trim() || '';
+      const name = cells[1]?.trim() || '';
+      
+      if (name.toLowerCase().includes('tên công việc') || name.toLowerCase().includes('tên hạng mục') || name.toLowerCase().includes('tên hạng mục công việc')) {
+        continue;
+      }
+
+      const unit = cells[2]?.trim() || '';
+      const designQuantity = cells[3] ? Number(cells[3].replace(/,/g, '')) || 0 : 0;
+      const previousAccumulatedQuantity = cells[4] ? Number(cells[4].replace(/,/g, '')) || 0 : 0;
+      const todayQuantity = cells[5] ? Number(cells[5].replace(/,/g, '')) || 0 : 0;
+      const personInCharge = cells[6]?.trim() || '';
+      const note = cells[7]?.trim() || '';
+
+      const isGroup = !unit && !designQuantity && !previousAccumulatedQuantity && !todayQuantity;
+
+      newItems.push({
+        tempId: `temp-excel-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+        parentId: null,
+        tempParentId: null,
+        sortOrder: nextSortOrder++,
+        level: 0,
+        code,
+        name,
+        unit,
+        designQuantity,
+        previousAccumulatedQuantity,
+        todayQuantity,
+        currentAccumulatedQuantity: previousAccumulatedQuantity + todayQuantity,
+        completionPercent: designQuantity > 0 ? ((previousAccumulatedQuantity + todayQuantity) / designQuantity) * 100 : null,
+        personInCharge,
+        note,
+        isGroup,
+        isLocked: false,
+        formula: null,
+      });
+    }
+
+    if (newItems.length > 0) {
+      const combined = [...workItemRows, ...newItems];
+      const sorted = combined.map((r, i) => ({ ...r, sortOrder: i + 1 }));
+      const recalculated = recalculateWorkItemTotals(sorted);
+      setWorkItemRows(recalculated);
     }
   };
 
@@ -1852,14 +2315,287 @@ export default function ReportEditPage() {
           </div>
         )}
 
-        {/* Tab 6: Work Items Grid Placeholder */}
+        {/* Tab 6: Work Items Tree Grid */}
         {activeTab === 'workitems' && (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Layers className="h-12 w-12 text-slate-700 mb-3" />
-            <h3 className="text-base font-semibold text-slate-350">Khối lượng hạng mục thi công (Excel-like Grid)</h3>
-            <p className="text-xs text-slate-500 mt-2 max-w-md">
-              Tính năng nhập bảng khối lượng dạng cây phân cấp, tự động tính lũy kế và phần trăm hoàn thành, copy/paste trực tiếp từ Excel sẽ khả dụng trong **Phase 5: Work Item Excel-like Grid**.
-            </p>
+          <div className="space-y-6">
+            {isFinalized && (
+              <div className="flex items-start gap-3 rounded-lg bg-yellow-950/40 border border-yellow-800/40 p-3 text-xs text-yellow-200 mb-4">
+                <Lock className="h-4 w-4 shrink-0 text-yellow-450" />
+                <span>Báo cáo này đã chốt, không thể chỉnh sửa khối lượng thi công.</span>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-850 pb-3">
+              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                <Layers className="h-4 w-4 text-blue-500" />
+                Khối lượng hạng mục thi công
+              </h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                {!isFinalized && canEdit && (
+                  <>
+                    <button
+                      onClick={() => handleAddWorkItemRow()}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Thêm dòng
+                    </button>
+                    <button
+                      onClick={() => setIsExcelModalOpen(true)}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
+                    >
+                      <Package className="h-3.5 w-3.5 text-emerald-500" />
+                      Nhập từ Excel
+                    </button>
+                    <button
+                      onClick={handleSaveWorkItems}
+                      disabled={tabLoading}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer"
+                    >
+                      <Save className="h-4 w-4" />
+                      Lưu hạng mục
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {tabError && (
+              <div className="flex items-start gap-3 rounded-lg bg-red-950/50 border border-red-800/60 p-3 text-xs text-red-200">
+                <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
+                <span>{tabError}</span>
+              </div>
+            )}
+
+            {tabSuccessMsg && (
+              <div className="flex items-center gap-3 rounded-lg bg-emerald-950/40 border border-emerald-800/40 p-3 text-xs text-emerald-255">
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-450" />
+                <span>{tabSuccessMsg}</span>
+              </div>
+            )}
+
+            {tabLoading && workItemRows.length === 0 ? (
+              <div className="flex h-32 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-slate-555" />
+              </div>
+            ) : workItemRows.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-slate-800 rounded-xl">
+                <Layers className="h-8 w-8 text-slate-700 mb-2" />
+                <h4 className="text-xs font-semibold text-slate-400">Không có dòng dữ liệu nào</h4>
+                <p className="text-3xs text-slate-500 mt-1 mb-3">Bấm nút &quot;Thêm dòng&quot; hoặc &quot;Nhập từ Excel&quot; để tạo hạng mục mới</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-slate-850 rounded-xl bg-slate-950/20">
+                <table className="w-full border-collapse text-left text-xs text-slate-350 min-w-[1200px]">
+                  <thead>
+                    <tr className="border-b border-slate-850 font-semibold text-slate-500 uppercase tracking-wider bg-slate-900/40">
+                      <th className="py-2.5 px-2 w-[12%] text-center">Hành động</th>
+                      <th className="py-2.5 px-2 w-[8%]">Mã hiệu</th>
+                      <th className="py-2.5 px-2 w-[24%]">Hạng mục công việc *</th>
+                      <th className="py-2.5 px-2 w-[6%] text-center">Đơn vị</th>
+                      <th className="py-2.5 px-2 text-right w-[9%]">KL Thiết kế</th>
+                      <th className="py-2.5 px-2 text-right w-[9%]">Lũy kế trước</th>
+                      <th className="py-2.5 px-2 text-right w-[9%]">Hôm nay</th>
+                      <th className="py-2.5 px-2 text-right w-[9%]">Lũy kế hiện tại</th>
+                      <th className="py-2.5 px-2 text-right w-[7%]">Tỷ lệ (%)</th>
+                      <th className="py-2.5 px-2 w-[10%]">Phụ trách</th>
+                      <th className="py-2.5 px-2 w-[10%]">Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-850/40">
+                    {workItemRows.map((row, index) => {
+                      const current = row.currentAccumulatedQuantity || 0;
+                      const percent = row.completionPercent || 0;
+                      const isGroup = row.isGroup;
+
+                      return (
+                        <tr
+                          key={index}
+                          className={`hover:bg-slate-850/10 transition-colors ${
+                            isGroup ? 'bg-slate-900/20 font-bold text-white' : ''
+                          }`}
+                        >
+                          <td className="py-2 px-1 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              {!isFinalized && canEdit ? (
+                                <>
+                                  <button
+                                    onClick={() => handleAddWorkItemRow(index, 'child')}
+                                    className="h-5 w-5 inline-flex items-center justify-center rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white"
+                                    title="Thêm hạng mục con"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleIndentWorkItemRow(index)}
+                                    className="h-5 w-5 inline-flex items-center justify-center rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white font-bold"
+                                    title="Thụt lề (Tạo con)"
+                                  >
+                                    &gt;
+                                  </button>
+                                  <button
+                                    onClick={() => handleOutdentWorkItemRow(index)}
+                                    className="h-5 w-5 inline-flex items-center justify-center rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white font-bold"
+                                    title="Nhô lề (Tạo cha)"
+                                  >
+                                    &lt;
+                                  </button>
+                                  <button
+                                    onClick={() => handleMoveWorkItemRow(index, 'up')}
+                                    className="h-5 w-5 inline-flex items-center justify-center rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white"
+                                    title="Di chuyển lên"
+                                  >
+                                    ↑
+                                  </button>
+                                  <button
+                                    onClick={() => handleMoveWorkItemRow(index, 'down')}
+                                    className="h-5 w-5 inline-flex items-center justify-center rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white"
+                                    title="Di chuyển xuống"
+                                  >
+                                    ↓
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteWorkItemRow(index)}
+                                    className="h-5 w-5 inline-flex items-center justify-center rounded bg-slate-955 hover:bg-red-950/20 border border-slate-800 hover:border-red-900 text-slate-500 hover:text-red-400"
+                                    title="Xóa hạng mục"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="text-slate-600 font-medium">Khóa</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-2 px-1">
+                            <input
+                              type="text"
+                              disabled={isFinalized || !canEdit || row.isLocked}
+                              value={row.code || ''}
+                              onChange={(e) => handleWorkItemChange(index, 'code', e.target.value)}
+                              placeholder="Mã..."
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs font-mono"
+                            />
+                          </td>
+                          <td className="py-2 px-1">
+                            <div
+                              style={{ paddingLeft: `${row.level * 1.25}rem` }}
+                              className="flex items-center gap-1.5"
+                            >
+                              {isGroup && (
+                                <span className="text-blue-450 select-none">📁</span>
+                              )}
+                              <input
+                                type="text"
+                                disabled={isFinalized || !canEdit || row.isLocked}
+                                value={row.name}
+                                onChange={(e) => handleWorkItemChange(index, 'name', e.target.value)}
+                                placeholder="Tên công việc..."
+                                className={`w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs ${
+                                  isGroup ? 'text-white font-bold' : 'text-slate-200'
+                                }`}
+                              />
+                            </div>
+                          </td>
+                          <td className="py-2 px-1">
+                            <input
+                              type="text"
+                              disabled={isFinalized || !canEdit || row.isLocked || isGroup}
+                              value={row.unit || ''}
+                              onChange={(e) => handleWorkItemChange(index, 'unit', e.target.value)}
+                              placeholder="Đơn vị"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-center disabled:opacity-30 disabled:cursor-not-allowed"
+                            />
+                          </td>
+                          <td className="py-2 px-1 text-right">
+                            <input
+                              type="number"
+                              disabled={isFinalized || !canEdit || row.isLocked || isGroup}
+                              value={row.designQuantity ?? ''}
+                              onChange={(e) =>
+                                handleWorkItemChange(
+                                  index,
+                                  'designQuantity',
+                                  e.target.value === '' ? null : Number(e.target.value)
+                                )
+                              }
+                              placeholder="0"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right disabled:opacity-30 disabled:cursor-not-allowed font-medium"
+                            />
+                          </td>
+                          <td className="py-2 px-1 text-right">
+                            <input
+                              type="number"
+                              disabled={isFinalized || !canEdit || row.isLocked || isGroup}
+                              value={row.previousAccumulatedQuantity ?? ''}
+                              onChange={(e) =>
+                                handleWorkItemChange(
+                                  index,
+                                  'previousAccumulatedQuantity',
+                                  e.target.value === '' ? null : Number(e.target.value)
+                                )
+                              }
+                              placeholder="0"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right disabled:opacity-30 disabled:cursor-not-allowed"
+                            />
+                          </td>
+                          <td className="py-2 px-1 text-right">
+                            <input
+                              type="number"
+                              disabled={isFinalized || !canEdit || row.isLocked || isGroup}
+                              value={row.todayQuantity ?? ''}
+                              onChange={(e) =>
+                                handleWorkItemChange(
+                                  index,
+                                  'todayQuantity',
+                                  e.target.value === '' ? null : Number(e.target.value)
+                                )
+                              }
+                              placeholder="0"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-white focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right disabled:opacity-30 disabled:cursor-not-allowed font-semibold"
+                            />
+                          </td>
+                          <td className="py-2 px-1 text-right">
+                            <input
+                              type="number"
+                              disabled
+                              value={current || ''}
+                              placeholder="0"
+                              className="w-full rounded bg-slate-950/30 border border-slate-850 py-1 px-1.5 text-slate-400 text-xs text-right cursor-not-allowed font-medium"
+                            />
+                          </td>
+                          <td className="py-2 px-1 text-right text-slate-300 font-semibold pr-2">
+                            {percent > 0 ? `${percent.toFixed(1)}%` : '0%'}
+                          </td>
+                          <td className="py-2 px-1">
+                            <input
+                              type="text"
+                              disabled={isFinalized || !canEdit || row.isLocked}
+                              value={row.personInCharge || ''}
+                              onChange={(e) =>
+                                handleWorkItemChange(index, 'personInCharge', e.target.value)
+                              }
+                              placeholder="Tên..."
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs"
+                            />
+                          </td>
+                          <td className="py-2 px-1">
+                            <input
+                              type="text"
+                              disabled={isFinalized || !canEdit || row.isLocked}
+                              value={row.note || ''}
+                              onChange={(e) => handleWorkItemChange(index, 'note', e.target.value)}
+                              placeholder="Ghi chú..."
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-355 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs"
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -1885,6 +2621,69 @@ export default function ReportEditPage() {
           </div>
         )}
       </div>
+
+      {/* Excel Paste Modal */}
+      {isExcelModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-slate-850 flex items-center justify-between">
+              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                <Package className="h-5 w-5 text-emerald-500" />
+                Nhập Khối Lượng từ Excel
+              </h3>
+              <button
+                onClick={() => {
+                  setIsExcelModalOpen(false);
+                  setExcelPasteText('');
+                }}
+                className="text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Sao chép các dòng trong Excel (hoặc Google Sheets) rồi dán trực tiếp vào khung dưới đây. Bảng dữ liệu cần theo thứ tự cột:
+                <br />
+                <span className="font-mono text-emerald-400 font-bold">Mã hiệu | Tên công việc | Đơn vị | KL Thiết kế | Lũy kế trước | Hôm nay | Người phụ trách | Ghi chú</span>
+              </p>
+              
+              <textarea
+                value={excelPasteText}
+                onChange={(e) => setExcelPasteText(e.target.value)}
+                placeholder="Dán dữ liệu Excel (Ctrl+V) tại đây..."
+                rows={10}
+                className="w-full rounded-lg bg-slate-950 border border-slate-800 p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-550/20 focus:border-blue-550 transition font-mono text-xs"
+              />
+            </div>
+            
+            <div className="p-6 border-t border-slate-850 bg-slate-900/50 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsExcelModalOpen(false);
+                  setExcelPasteText('');
+                }}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-350 hover:text-white transition cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={() => {
+                  handleImportExcelData(excelPasteText);
+                  setIsExcelModalOpen(false);
+                  setExcelPasteText('');
+                }}
+                disabled={!excelPasteText.trim()}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-650 hover:bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                Nhập dữ liệu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
