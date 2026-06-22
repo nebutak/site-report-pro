@@ -19,7 +19,11 @@ export class JwtAuthGuard implements CanActivate {
     const request = context
       .switchToHttp()
       .getRequest<Request & { user?: any }>();
-    const token = this.extractTokenFromHeader(request);
+    let token = this.extractTokenFromHeader(request);
+    if (!token && request.query && typeof request.query['token'] === 'string') {
+      token = request.query['token'];
+    }
+
     if (!token) {
       throw new UnauthorizedException('Token đăng nhập không tồn tại');
     }

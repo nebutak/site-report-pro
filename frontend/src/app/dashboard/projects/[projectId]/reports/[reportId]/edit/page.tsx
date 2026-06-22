@@ -3693,7 +3693,7 @@ export default function ReportEditPage() {
                       process.env.NEXT_PUBLIC_API_URL
                         ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '')
                         : 'http://localhost:3001'
-                    }/api/reports/${reportId}/preview`}
+                    }/api/reports/${reportId}/preview?token=${typeof window !== 'undefined' ? localStorage.getItem('token') || '' : ''}`}
                     className="w-full h-full border-0"
                     title="Báo cáo ngày - Xem trước"
                   />
