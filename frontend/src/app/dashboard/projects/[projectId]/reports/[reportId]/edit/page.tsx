@@ -224,6 +224,41 @@ interface ReportExport {
   createdAt: string;
 }
 
+interface ReportVersion {
+  id: number;
+  reportId: number;
+  versionNo: number;
+  snapshot: unknown;
+  changeReason: string | null;
+  createdById: number;
+  createdAt: string;
+  createdBy: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+}
+
+interface AuditLog {
+  id: number;
+  userId: number | null;
+  projectId: number | null;
+  reportId: number | null;
+  entityType: string;
+  entityId: number | null;
+  action: string;
+  fieldName: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  reason: string | null;
+  createdAt: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+}
+
 const editReportSchema = z.object({
   reportNo: z.string().min(1, { message: 'Số báo cáo không được để trống' }),
   title: z.string().min(1, { message: 'Tiêu đề không được để trống' }),
@@ -271,6 +306,17 @@ export default function ReportEditPage() {
   const [isExportingWord, setIsExportingWord] = useState(false);
   const [localMessageContent, setLocalMessageContent] = useState('');
   const [isExportingTxt, setIsExportingTxt] = useState(false);
+
+  // Phase 10 States
+  const [reportVersions, setReportVersions] = useState<ReportVersion[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [selectedVersion, setSelectedVersion] = useState<ReportVersion | null>(null);
+  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+  const [snapshotActiveTab, setSnapshotActiveTab] = useState<'weather' | 'manpower' | 'equipment' | 'materials' | 'workitems' | 'images'>('weather');
+  const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
+  const [changeReasonText, setChangeReasonText] = useState('');
+  const [isSubmittingAdjustment, setIsSubmittingAdjustment] = useState(false);
+
 
   // Authorization flags
   const isAdmin = user?.role === 'ADMIN';
@@ -514,6 +560,13 @@ export default function ReportEditPage() {
           if (active) {
             setExportHistory(data);
           }
+        } else if (activeTab === 'history') {
+          const versionsData = await apiClient.get<ReportVersion[]>(`/reports/${reportId}/versions`);
+          const logsData = await apiClient.get<AuditLog[]>(`/reports/${reportId}/audit-logs`);
+          if (active) {
+            setReportVersions(versionsData);
+            setAuditLogs(logsData);
+          }
         }
       } catch (err) {
         const apiError = err as { message?: string };
@@ -527,7 +580,7 @@ export default function ReportEditPage() {
       }
     };
 
-    if (['weather', 'manpower', 'equipment', 'materials', 'workitems', 'images', 'export'].includes(activeTab)) {
+    if (['weather', 'manpower', 'equipment', 'materials', 'workitems', 'images', 'export', 'history'].includes(activeTab)) {
       void loadTabData();
     }
 
@@ -567,6 +620,31 @@ export default function ReportEditPage() {
       setError(apiError.message || `Lỗi khi thực hiện thao tác`);
     } finally {
       setIsSubmittingAction(false);
+    }
+  };
+
+  const handleCreateAdjustment = async () => {
+    if (!reportId || !changeReasonText.trim()) return;
+    setIsSubmittingAdjustment(true);
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      await apiClient.post(`/reports/${reportId}/adjustment`, { changeReason: changeReasonText });
+      setSuccessMsg('Tạo bản điều chỉnh thành công, báo cáo đã được chuyển về trạng thái Bản nháp (DRAFT).');
+      setIsAdjustmentModalOpen(false);
+      setChangeReasonText('');
+      await fetchReport();
+      if (activeTab === 'history') {
+        const versionsData = await apiClient.get<ReportVersion[]>(`/reports/${reportId}/versions`);
+        const logsData = await apiClient.get<AuditLog[]>(`/reports/${reportId}/audit-logs`);
+        setReportVersions(versionsData);
+        setAuditLogs(logsData);
+      }
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setError(apiError.message || 'Lỗi khi tạo bản điều chỉnh');
+    } finally {
+      setIsSubmittingAdjustment(false);
     }
   };
 
@@ -1509,6 +1587,307 @@ export default function ReportEditPage() {
     return type;
   };
 
+  const getActionLabel = (action: string) => {
+    switch (action) {
+      case 'CREATE_REPORT': return 'Khởi tạo báo cáo';
+      case 'UPDATE_WEATHER': return 'Cập nhật thời tiết';
+      case 'UPDATE_MANPOWER': return 'Cập nhật nhân lực';
+      case 'UPDATE_EQUIPMENT': return 'Cập nhật thiết bị';
+      case 'UPDATE_MATERIAL': return 'Cập nhật vật tư';
+      case 'UPDATE_WORK_ITEMS': return 'Cập nhật khối lượng';
+      case 'EXPORT_REPORT': return 'Xuất bản file';
+      case 'CREATE_ADJUSTMENT': return 'Tạo bản điều chỉnh';
+      case 'UPDATE_CELL': return 'Sửa ô dữ liệu';
+      case 'REGENERATE_MESSAGE': return 'Sinh lại lời dẫn';
+      default: return action;
+    }
+  };
+
+  const getEntityLabel = (type: string) => {
+    switch (type) {
+      case 'WeatherRow': return 'Thời tiết';
+      case 'ManpowerRow': return 'Nhân lực';
+      case 'EquipmentRow': return 'Thiết bị';
+      case 'MaterialRow': return 'Vật tư';
+      case 'WorkItem': return 'Khối lượng';
+      default: return type;
+    }
+  };
+
+  const getFieldLabel = (field: string) => {
+    switch (field) {
+      case 'isSunny': return 'Trời nắng';
+      case 'isRainy': return 'Trời mưa';
+      case 'isNormal': return 'Bình thường';
+      case 'wind': return 'Gió';
+      case 'wave': return 'Sóng';
+      case 'swell': return 'Sóng lừng';
+      case 'note': return 'Ghi chú';
+      case 'name': return 'Tên';
+      case 'unit': return 'Đơn vị';
+      case 'previousQuantity': return 'Lũy kế trước';
+      case 'changeQuantity': return 'Thay đổi';
+      case 'todayQuantity': return 'Hôm nay';
+      case 'managerQuantity': return 'Quản lý';
+      case 'staffQuantity': return 'Nhân viên';
+      case 'overtimeQuantity': return 'Tăng ca';
+      case 'securityQuantity': return 'Bảo vệ';
+      case 'normalQuantity': return 'Hoạt động';
+      case 'repairingQuantity': return 'Sửa chữa';
+      case 'brokenQuantity': return 'Hỏng';
+      case 'quantity': return 'Số lượng';
+      case 'code': return 'Mã hiệu';
+      case 'designQuantity': return 'KL Thiết kế';
+      case 'previousAccumulatedQuantity': return 'Lũy kế trước';
+      case 'currentAccumulatedQuantity': return 'Lũy kế hiện tại';
+      case 'completionPercent': return 'Tỷ lệ hoàn thành';
+      case 'personInCharge': return 'Phụ trách';
+      default: return field;
+    }
+  };
+
+  const renderSnapshotContent = () => {
+    if (!selectedVersion) return null;
+    
+    const snapshot = selectedVersion.snapshot as {
+      weatherRows?: WeatherRow[];
+      manpowerRows?: ApiManpowerRow[];
+      equipmentRows?: ApiEquipmentRow[];
+      materialRows?: ApiMaterialRow[];
+      workItems?: ApiWorkItemRow[];
+      images?: ReportImage[];
+    };
+
+    switch (snapshotActiveTab) {
+      case 'weather':
+        return (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-slate-300 border-collapse text-left">
+              <thead>
+                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-450 font-bold uppercase text-[10px]">
+                  <th className="py-2.5 px-3">Thời gian</th>
+                  <th className="py-2.5 px-3 text-center">Nắng</th>
+                  <th className="py-2.5 px-3 text-center">Mưa</th>
+                  <th className="py-2.5 px-3 text-center">Bình thường</th>
+                  <th className="py-2.5 px-3">Gió</th>
+                  <th className="py-2.5 px-3">Sóng</th>
+                  <th className="py-2.5 px-3">Sóng lừng</th>
+                  <th className="py-2.5 px-3">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-850">
+                {(snapshot.weatherRows || []).map((w, idx) => (
+                  <tr key={idx} className="hover:bg-slate-900/30">
+                    <td className="py-2.5 px-3 font-semibold text-slate-200">{w.period}</td>
+                    <td className="py-2.5 px-3 text-center">{w.isSunny ? '✓' : ''}</td>
+                    <td className="py-2.5 px-3 text-center">{w.isRainy ? '✓' : ''}</td>
+                    <td className="py-2.5 px-3 text-center">{w.isNormal ? '✓' : ''}</td>
+                    <td className="py-2.5 px-3">{w.wind || '---'}</td>
+                    <td className="py-2.5 px-3">{w.wave || '---'}</td>
+                    <td className="py-2.5 px-3">{w.swell || '---'}</td>
+                    <td className="py-2.5 px-3 text-slate-400">{w.note || '---'}</td>
+                  </tr>
+                ))}
+                {(snapshot.weatherRows || []).length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="py-4 text-center text-slate-500 italic">Không có dữ liệu thời tiết.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        );
+      case 'manpower':
+        return (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-slate-300 border-collapse text-left">
+              <thead>
+                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-450 font-bold uppercase text-[10px]">
+                  <th className="py-2.5 px-3">Hạng mục nhân sự</th>
+                  <th className="py-2.5 px-3">Đơn vị</th>
+                  <th className="py-2.5 px-3 text-right">Lũy kế trước</th>
+                  <th className="py-2.5 px-3 text-right">Thay đổi</th>
+                  <th className="py-2.5 px-3 text-right">Hôm nay</th>
+                  <th className="py-2.5 px-3 text-right">Quản lý</th>
+                  <th className="py-2.5 px-3 text-right">Nhân viên</th>
+                  <th className="py-2.5 px-3 text-right">Tăng ca</th>
+                  <th className="py-2.5 px-3 text-right">Bảo vệ</th>
+                  <th className="py-2.5 px-3">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-850">
+                {(snapshot.manpowerRows || []).map((m, idx) => (
+                  <tr key={idx} className="hover:bg-slate-900/30">
+                    <td className="py-2.5 px-3 font-semibold text-slate-200">{m.name}</td>
+                    <td className="py-2.5 px-3">{m.unit || '---'}</td>
+                    <td className="py-2.5 px-3 text-right">{m.previousQuantity !== null ? Number(m.previousQuantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-right text-blue-400">{m.changeQuantity !== null ? Number(m.changeQuantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-right font-bold text-white">{m.todayQuantity !== null ? Number(m.todayQuantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-right">{m.managerQuantity !== null ? Number(m.managerQuantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-right">{m.staffQuantity !== null ? Number(m.staffQuantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-right">{m.overtimeQuantity !== null ? Number(m.overtimeQuantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-right">{m.securityQuantity !== null ? Number(m.securityQuantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-slate-400">{m.note || '---'}</td>
+                  </tr>
+                ))}
+                {(snapshot.manpowerRows || []).length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="py-4 text-center text-slate-500 italic">Không có dữ liệu nhân lực.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        );
+      case 'equipment':
+        return (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-slate-300 border-collapse text-left">
+              <thead>
+                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-450 font-bold uppercase text-[10px]">
+                  <th className="py-2.5 px-3">Hạng mục thiết bị</th>
+                  <th className="py-2.5 px-3">Đơn vị</th>
+                  <th className="py-2.5 px-3 text-right">Lũy kế trước</th>
+                  <th className="py-2.5 px-3 text-right">Thay đổi</th>
+                  <th className="py-2.5 px-3 text-right">Hôm nay</th>
+                  <th className="py-2.5 px-3 text-right">Hoạt động</th>
+                  <th className="py-2.5 px-3 text-right">Sửa chữa</th>
+                  <th className="py-2.5 px-3 text-right">Hỏng</th>
+                  <th className="py-2.5 px-3">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-850">
+                {(snapshot.equipmentRows || []).map((e, idx) => (
+                  <tr key={idx} className="hover:bg-slate-900/30">
+                    <td className="py-2.5 px-3 font-semibold text-slate-200">{e.name}</td>
+                    <td className="py-2.5 px-3">{e.unit || '---'}</td>
+                    <td className="py-2.5 px-3 text-right">{e.previousQuantity !== null ? Number(e.previousQuantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-right text-blue-400">{e.changeQuantity !== null ? Number(e.changeQuantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-right font-bold text-white">{e.todayQuantity !== null ? Number(e.todayQuantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-right">{e.normalQuantity !== null ? Number(e.normalQuantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-right">{e.repairingQuantity !== null ? Number(e.repairingQuantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-right">{e.brokenQuantity !== null ? Number(e.brokenQuantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-slate-400">{e.note || '---'}</td>
+                  </tr>
+                ))}
+                {(snapshot.equipmentRows || []).length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="py-4 text-center text-slate-500 italic">Không có dữ liệu thiết bị.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        );
+      case 'materials':
+        return (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-slate-300 border-collapse text-left">
+              <thead>
+                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-450 font-bold uppercase text-[10px]">
+                  <th className="py-2.5 px-3">Tên vật tư</th>
+                  <th className="py-2.5 px-3">Đơn vị</th>
+                  <th className="py-2.5 px-3 text-right">Số lượng tiêu hao</th>
+                  <th className="py-2.5 px-3">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-850">
+                {(snapshot.materialRows || []).map((mat, idx) => (
+                  <tr key={idx} className="hover:bg-slate-900/30">
+                    <td className="py-2.5 px-3 font-semibold text-slate-200">{mat.name}</td>
+                    <td className="py-2.5 px-3">{mat.unit || '---'}</td>
+                    <td className="py-2.5 px-3 text-right font-bold text-white">{mat.quantity !== null ? Number(mat.quantity) : 0}</td>
+                    <td className="py-2.5 px-3 text-slate-400">{mat.note || '---'}</td>
+                  </tr>
+                ))}
+                {(snapshot.materialRows || []).length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-4 text-center text-slate-500 italic">Không có dữ liệu vật tư.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        );
+      case 'workitems':
+        return (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-slate-300 border-collapse text-left">
+              <thead>
+                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-450 font-bold uppercase text-[10px]">
+                  <th className="py-2.5 px-3">Mã</th>
+                  <th className="py-2.5 px-3">Hạng mục công việc</th>
+                  <th className="py-2.5 px-3">Đơn vị</th>
+                  <th className="py-2.5 px-3 text-right">KL Thiết kế</th>
+                  <th className="py-2.5 px-3 text-right">Lũy kế trước</th>
+                  <th className="py-2.5 px-3 text-right">Hôm nay</th>
+                  <th className="py-2.5 px-3 text-right">Lũy kế hiện tại</th>
+                  <th className="py-2.5 px-3 text-right">Hoàn thành</th>
+                  <th className="py-2.5 px-3">Người phụ trách</th>
+                  <th className="py-2.5 px-3">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-850">
+                {(snapshot.workItems || []).map((w, idx) => (
+                  <tr
+                    key={idx}
+                    className={`hover:bg-slate-900/30 ${
+                      w.isGroup ? 'bg-slate-900/10 font-semibold' : ''
+                    }`}
+                  >
+                    <td className="py-2.5 px-3 font-mono text-[10px] text-slate-400">{w.code || ''}</td>
+                    <td className="py-2.5 px-3 text-slate-200" style={{ paddingLeft: `${w.level * 16 + 12}px` }}>
+                      {w.name}
+                    </td>
+                    <td className="py-2.5 px-3">{w.unit || ''}</td>
+                    <td className="py-2.5 px-3 text-right">{w.designQuantity !== null ? Number(w.designQuantity) : '---'}</td>
+                    <td className="py-2.5 px-3 text-right text-slate-400">{w.previousAccumulatedQuantity !== null ? Number(w.previousAccumulatedQuantity) : '---'}</td>
+                    <td className="py-2.5 px-3 text-right text-blue-400 font-bold">{w.todayQuantity !== null ? Number(w.todayQuantity) : '---'}</td>
+                    <td className="py-2.5 px-3 text-right text-white font-bold">{w.currentAccumulatedQuantity !== null ? Number(w.currentAccumulatedQuantity) : '---'}</td>
+                    <td className="py-2.5 px-3 text-right text-emerald-450 font-bold">
+                      {w.completionPercent !== null ? `${Number(w.completionPercent).toFixed(1)}%` : '---'}
+                    </td>
+                    <td className="py-2.5 px-3">{w.personInCharge || '---'}</td>
+                    <td className="py-2.5 px-3 text-slate-400">{w.note || ''}</td>
+                  </tr>
+                ))}
+                {(snapshot.workItems || []).length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="py-4 text-center text-slate-500 italic">Không có dữ liệu khối lượng thi công.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        );
+      case 'images':
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {(snapshot.images || []).map((img) => (
+              <div key={img.id} className="bg-slate-950 rounded-xl overflow-hidden border border-slate-850 p-2.5 space-y-2">
+                <div className="aspect-video relative rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001'}${img.fileUrl}`}
+                    alt={img.caption || 'Hình ảnh báo cáo'}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+                <div className="text-[10px] text-slate-400 truncate px-0.5" title={img.caption || ''}>
+                  {img.caption || 'Chưa có chú thích'}
+                </div>
+              </div>
+            ))}
+            {(snapshot.images || []).length === 0 && (
+              <div className="col-span-full py-8 text-center text-slate-500 italic">Không có hình ảnh đính kèm.</div>
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Top Header & Toolbar */}
@@ -1566,6 +1945,18 @@ export default function ReportEditPage() {
             >
               <Mail className="h-4 w-4" />
               Đánh dấu đã gửi
+            </button>
+          )}
+
+          {/* Create Adjustment Action */}
+          {(report.status === 'APPROVED' || report.status === 'SENT') && canEdit && (
+            <button
+              onClick={() => setIsAdjustmentModalOpen(true)}
+              disabled={isSubmittingAction}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 hover:bg-amber-550 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer"
+            >
+              <History className="h-4 w-4" />
+              Tạo bản điều chỉnh
             </button>
           )}
 
@@ -3316,17 +3707,266 @@ export default function ReportEditPage() {
           </div>
         )}
 
-        {/* Tab 8: Audit History Placeholder */}
+        {/* Tab 8: Audit History */}
         {activeTab === 'history' && (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <History className="h-12 w-12 text-slate-700 mb-3" />
-            <h3 className="text-base font-semibold text-slate-350">Lịch sử Chỉnh sửa & Phiên bản</h3>
-            <p className="text-xs text-slate-500 mt-2 max-w-md">
-              Tính năng so sánh sự khác biệt giữa các phiên bản, quản lý version điều chỉnh và ghi audit log chi tiết đến cấp độ ô sẽ khả dụng trong **Phase 10: Versioning + Audit Log nâng cao**.
-            </p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Cột 1: Lịch sử phiên bản */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+                <History className="h-5 w-5 text-amber-500" />
+                <h3 className="text-sm font-bold text-white">Lịch sử Phiên bản</h3>
+              </div>
+              
+              {reportVersions.length === 0 ? (
+                <div className="bg-slate-900/50 border border-slate-800 border-dashed rounded-xl p-8 text-center text-xs text-slate-500">
+                  Báo cáo chưa có phiên bản điều chỉnh nào.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {reportVersions.map((v) => (
+                    <div
+                      key={v.id}
+                      onClick={() => {
+                        setSelectedVersion(v);
+                        setIsVersionModalOpen(true);
+                        setSnapshotActiveTab('weather');
+                      }}
+                      className="bg-slate-900 border border-slate-850 hover:border-slate-750 transition-all rounded-xl p-4 cursor-pointer group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-blue-450 bg-blue-950/40 border border-blue-900/30 px-2 py-0.5 rounded-full">
+                          Phiên bản v{v.versionNo}
+                        </span>
+                        <span className="text-[10px] text-slate-550">
+                          {new Date(v.createdAt).toLocaleString('vi-VN')}
+                        </span>
+                      </div>
+                      
+                      <p className="text-xs text-slate-350 mt-2.5 line-clamp-2">
+                        <span className="font-semibold text-slate-200">Lý do: </span>
+                        {v.changeReason || 'Không có lý do ghi nhận'}
+                      </p>
+                      
+                      <div className="flex items-center gap-1.5 mt-3 text-[10px] text-slate-450 border-t border-slate-850/60 pt-2 group-hover:text-slate-350 transition">
+                        <User className="h-3 w-3" />
+                        <span>Người tạo: {v.createdBy?.name || 'Hệ thống'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Cột 2 & 3: Nhật ký hoạt động */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-500" />
+                  <h3 className="text-sm font-bold text-white">Nhật ký hoạt động chi tiết</h3>
+                </div>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  Tổng cộng: {auditLogs.length} sự kiện
+                </span>
+              </div>
+
+              {auditLogs.length === 0 ? (
+                <div className="bg-slate-900/50 border border-slate-800 border-dashed rounded-xl p-16 text-center text-xs text-slate-500">
+                  Chưa có nhật ký hoạt động nào ghi nhận.
+                </div>
+              ) : (
+                <div className="bg-slate-900 border border-slate-850 rounded-xl p-5 space-y-1.5 max-h-[600px] overflow-y-auto pr-2 divide-y divide-slate-850/50">
+                  {auditLogs.map((log) => (
+                    <div key={log.id} className="py-3 first:pt-0 last:pb-0 text-xs">
+                      <div className="flex items-center justify-between gap-4 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                            log.action === 'CREATE_REPORT' ? 'bg-blue-950/40 text-blue-400 border border-blue-900/40' :
+                            log.action === 'CREATE_ADJUSTMENT' ? 'bg-amber-950/40 text-amber-400 border border-amber-900/40' :
+                            log.action === 'EXPORT_REPORT' ? 'bg-purple-950/40 text-purple-400 border border-purple-900/40' :
+                            log.action === 'UPDATE_CELL' ? 'bg-slate-800/80 text-slate-350 border border-slate-750' :
+                            'bg-slate-850 text-slate-400 border border-slate-800'
+                          }`}>
+                            {getActionLabel(log.action)}
+                          </span>
+                          
+                          <span className="font-semibold text-slate-200">
+                            {log.user?.name || 'Hệ thống'}
+                          </span>
+                        </div>
+                        
+                        <span className="text-[10px] text-slate-550">
+                          {new Date(log.createdAt).toLocaleString('vi-VN')}
+                        </span>
+                      </div>
+                      
+                      <div className="mt-2 text-slate-350 leading-relaxed pl-1">
+                        {log.action === 'UPDATE_CELL' ? (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span>Sửa bảng</span>
+                            <span className="text-slate-250 font-bold bg-slate-950/40 px-1.5 py-0.25 rounded border border-slate-800">{getEntityLabel(log.entityType)}</span>
+                            <span>trường</span>
+                            <span className="text-blue-450 font-bold bg-slate-950/40 px-1.5 py-0.25 rounded border border-slate-800">{getFieldLabel(log.fieldName || '')}</span>
+                            <span>:</span>
+                            {log.oldValue ? (
+                              <span className="text-red-400 font-mono line-through bg-red-950/20 px-1 py-0.25 rounded">{log.oldValue}</span>
+                            ) : (
+                              <span className="text-slate-600 italic">Trống</span>
+                            )}
+                            <span className="text-slate-500">→</span>
+                            {log.newValue ? (
+                              <span className="text-emerald-450 font-mono font-bold bg-emerald-950/20 px-1 py-0.25 rounded">{log.newValue}</span>
+                            ) : (
+                              <span className="text-slate-600 italic">Xóa</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span>{log.reason || 'Không có mô tả chi tiết.'}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
+
+      {/* Modal: Tạo bản điều chỉnh */}
+      {isAdjustmentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-slate-850 flex items-center justify-between">
+              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                <History className="h-5 w-5 text-amber-500" />
+                Tạo Bản Điều Chỉnh Báo Cáo
+              </h3>
+              <button
+                onClick={() => {
+                  setIsAdjustmentModalOpen(false);
+                  setChangeReasonText('');
+                }}
+                className="text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="rounded-lg bg-amber-950/20 border border-amber-800/30 p-3 text-xs text-amber-350 leading-relaxed">
+                Sau khi tạo bản điều chỉnh, hệ thống sẽ tự động lưu lại Snapshot dữ liệu hiện thời thành một phiên bản lịch sử mới, và chuyển trạng thái báo cáo này về <strong>Bản nháp (DRAFT)</strong> để bạn tiếp tục chỉnh sửa.
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-350">
+                  Lý do điều chỉnh <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={changeReasonText}
+                  onChange={(e) => setChangeReasonText(e.target.value)}
+                  placeholder="Ví dụ: Thay đổi sản lượng thực tế hôm nay theo biên bản kiểm kê..."
+                  rows={4}
+                  className="w-full rounded-lg bg-slate-950 border border-slate-800 p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-550/20 focus:border-blue-550 transition text-xs"
+                />
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-slate-850 bg-slate-900/50 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsAdjustmentModalOpen(false);
+                  setChangeReasonText('');
+                }}
+                disabled={isSubmittingAdjustment}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-350 hover:text-white transition cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={() => {
+                  void handleCreateAdjustment();
+                }}
+                disabled={isSubmittingAdjustment || !changeReasonText.trim()}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-650 hover:bg-amber-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer"
+              >
+                {isSubmittingAdjustment ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <History className="h-4 w-4" />
+                )}
+                Xác nhận tạo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Xem Snapshot Phiên bản */}
+      {isVersionModalOpen && selectedVersion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col h-[90vh]">
+            <div className="p-6 border-b border-slate-850 flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                  <History className="h-5 w-5 text-blue-500" />
+                  Xem Chi Tiết Phiên Bản v{selectedVersion.versionNo}
+                </h3>
+                <p className="text-3xs text-slate-450 mt-1">
+                  Được tạo bởi: <span className="text-slate-300 font-medium">{selectedVersion.createdBy?.name || 'Hệ thống'}</span> | Lý do: <span className="text-slate-350 italic">{selectedVersion.changeReason || 'Không ghi nhận'}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsVersionModalOpen(false);
+                  setSelectedVersion(null);
+                }}
+                className="text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="bg-slate-950/40 border-b border-slate-850 px-6 py-2 flex gap-1.5 overflow-x-auto scrollbar-none shrink-0">
+              {[
+                { key: 'weather', label: 'Thời tiết' },
+                { key: 'manpower', label: 'Nhân lực' },
+                { key: 'equipment', label: 'Thiết bị' },
+                { key: 'materials', label: 'Vật tư' },
+                { key: 'workitems', label: 'Khối lượng' },
+                { key: 'images', label: 'Hình ảnh' },
+              ].map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setSnapshotActiveTab(t.key as 'weather' | 'manpower' | 'equipment' | 'materials' | 'workitems' | 'images')}
+                  className={`px-3 py-1.5 rounded-lg text-3xs font-semibold transition cursor-pointer ${
+                    snapshotActiveTab === t.key
+                      ? 'bg-blue-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850/50'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1 bg-slate-900/30">
+              {renderSnapshotContent()}
+            </div>
+            
+            <div className="p-6 border-t border-slate-850 bg-slate-900/50 flex justify-end shrink-0">
+              <button
+                onClick={() => {
+                  setIsVersionModalOpen(false);
+                  setSelectedVersion(null);
+                }}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-800 bg-slate-950 px-4 py-2 text-xs font-semibold text-slate-350 hover:text-white transition cursor-pointer"
+              >
+                Đóng lại
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Excel Paste Modal */}
       {isExcelModalOpen && (

@@ -405,4 +405,49 @@ export class ReportsController {
       );
     }
   }
+
+  @Post(':id/adjustment')
+  async createAdjustment(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('changeReason') changeReason: string,
+    @CurrentUser() user: unknown,
+  ) {
+    const reqUser = this.checkRoles(user, [
+      'ADMIN',
+      'PROJECT_MANAGER',
+      'REPORTER',
+    ]);
+    if (!changeReason || changeReason.trim() === '') {
+      throw new BadRequestException('Lý do điều chỉnh không được để trống');
+    }
+    return this.reportsService.createAdjustment(id, changeReason, reqUser.id);
+  }
+
+  @Get(':id/versions')
+  async getVersions(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: unknown,
+  ) {
+    this.checkRoles(user, ['ADMIN', 'PROJECT_MANAGER', 'REPORTER', 'REVIEWER']);
+    return this.reportsService.getVersions(id);
+  }
+
+  @Get(':id/versions/:versionId')
+  async getVersion(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('versionId', ParseIntPipe) versionId: number,
+    @CurrentUser() user: unknown,
+  ) {
+    this.checkRoles(user, ['ADMIN', 'PROJECT_MANAGER', 'REPORTER', 'REVIEWER']);
+    return this.reportsService.getVersion(id, versionId);
+  }
+
+  @Get(':id/audit-logs')
+  async getAuditLogs(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: unknown,
+  ) {
+    this.checkRoles(user, ['ADMIN', 'PROJECT_MANAGER', 'REPORTER', 'REVIEWER']);
+    return this.reportsService.getAuditLogs(id);
+  }
 }

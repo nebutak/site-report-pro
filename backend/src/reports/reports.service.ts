@@ -684,6 +684,94 @@ export class ReportsService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      const existingRows = await tx.weatherRow.findMany({
+        where: { reportId },
+      });
+      for (const incomingRow of dto.rows || []) {
+        const matched = existingRows.find(
+          (e) => e.period === incomingRow.period,
+        );
+        if (matched) {
+          await this.logCellChange(
+            tx,
+            userId,
+            report.projectId,
+            reportId,
+            'WeatherRow',
+            matched.id,
+            'isSunny',
+            matched.isSunny,
+            incomingRow.isSunny ?? false,
+          );
+          await this.logCellChange(
+            tx,
+            userId,
+            report.projectId,
+            reportId,
+            'WeatherRow',
+            matched.id,
+            'isRainy',
+            matched.isRainy,
+            incomingRow.isRainy ?? false,
+          );
+          await this.logCellChange(
+            tx,
+            userId,
+            report.projectId,
+            reportId,
+            'WeatherRow',
+            matched.id,
+            'isNormal',
+            matched.isNormal,
+            incomingRow.isNormal ?? false,
+          );
+          await this.logCellChange(
+            tx,
+            userId,
+            report.projectId,
+            reportId,
+            'WeatherRow',
+            matched.id,
+            'wind',
+            matched.wind,
+            incomingRow.wind ?? null,
+          );
+          await this.logCellChange(
+            tx,
+            userId,
+            report.projectId,
+            reportId,
+            'WeatherRow',
+            matched.id,
+            'wave',
+            matched.wave,
+            incomingRow.wave ?? null,
+          );
+          await this.logCellChange(
+            tx,
+            userId,
+            report.projectId,
+            reportId,
+            'WeatherRow',
+            matched.id,
+            'swell',
+            matched.swell,
+            incomingRow.swell ?? null,
+          );
+          await this.logCellChange(
+            tx,
+            userId,
+            report.projectId,
+            reportId,
+            'WeatherRow',
+            matched.id,
+            'note',
+            matched.note,
+            incomingRow.note ?? null,
+          );
+        }
+      }
+
       await tx.weatherRow.deleteMany({
         where: { reportId },
       });
@@ -798,6 +886,119 @@ export class ReportsService {
         };
 
         if (r.id && r.id > 0) {
+          const matched = existing.find((e) => e.id === r.id);
+          if (matched) {
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'ManpowerRow',
+              matched.id,
+              'name',
+              matched.name,
+              r.name,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'ManpowerRow',
+              matched.id,
+              'unit',
+              matched.unit,
+              r.unit ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'ManpowerRow',
+              matched.id,
+              'previousQuantity',
+              matched.previousQuantity,
+              r.previousQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'ManpowerRow',
+              matched.id,
+              'changeQuantity',
+              matched.changeQuantity,
+              r.changeQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'ManpowerRow',
+              matched.id,
+              'todayQuantity',
+              matched.todayQuantity,
+              r.todayQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'ManpowerRow',
+              matched.id,
+              'managerQuantity',
+              matched.managerQuantity,
+              r.managerQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'ManpowerRow',
+              matched.id,
+              'staffQuantity',
+              matched.staffQuantity,
+              r.staffQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'ManpowerRow',
+              matched.id,
+              'overtimeQuantity',
+              matched.overtimeQuantity,
+              r.overtimeQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'ManpowerRow',
+              matched.id,
+              'securityQuantity',
+              matched.securityQuantity,
+              r.securityQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'ManpowerRow',
+              matched.id,
+              'note',
+              matched.note,
+              r.note ?? null,
+            );
+          }
           await tx.manpowerRow.update({
             where: { id: r.id },
             data,
@@ -900,6 +1101,108 @@ export class ReportsService {
         };
 
         if (r.id && r.id > 0) {
+          const matched = existing.find((e) => e.id === r.id);
+          if (matched) {
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'EquipmentRow',
+              matched.id,
+              'name',
+              matched.name,
+              r.name,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'EquipmentRow',
+              matched.id,
+              'unit',
+              matched.unit,
+              r.unit ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'EquipmentRow',
+              matched.id,
+              'previousQuantity',
+              matched.previousQuantity,
+              r.previousQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'EquipmentRow',
+              matched.id,
+              'changeQuantity',
+              matched.changeQuantity,
+              r.changeQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'EquipmentRow',
+              matched.id,
+              'todayQuantity',
+              matched.todayQuantity,
+              r.todayQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'EquipmentRow',
+              matched.id,
+              'normalQuantity',
+              matched.normalQuantity,
+              r.normalQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'EquipmentRow',
+              matched.id,
+              'repairingQuantity',
+              matched.repairingQuantity,
+              r.repairingQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'EquipmentRow',
+              matched.id,
+              'brokenQuantity',
+              matched.brokenQuantity,
+              r.brokenQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'EquipmentRow',
+              matched.id,
+              'note',
+              matched.note,
+              r.note ?? null,
+            );
+          }
           await tx.equipmentRow.update({
             where: { id: r.id },
             data,
@@ -980,6 +1283,53 @@ export class ReportsService {
         };
 
         if (r.id && r.id > 0) {
+          const matched = existing.find((e) => e.id === r.id);
+          if (matched) {
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'MaterialRow',
+              matched.id,
+              'name',
+              matched.name,
+              r.name,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'MaterialRow',
+              matched.id,
+              'unit',
+              matched.unit,
+              r.unit ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'MaterialRow',
+              matched.id,
+              'quantity',
+              matched.quantity,
+              r.quantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'MaterialRow',
+              matched.id,
+              'note',
+              matched.note,
+              r.note ?? null,
+            );
+          }
           await tx.materialRow.update({
             where: { id: r.id },
             data,
@@ -1179,6 +1529,119 @@ export class ReportsService {
         };
 
         if (r.id && r.id > 0) {
+          const matched = existing.find((e) => e.id === r.id);
+          if (matched) {
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'WorkItem',
+              matched.id,
+              'code',
+              matched.code,
+              r.code ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'WorkItem',
+              matched.id,
+              'name',
+              matched.name,
+              r.name,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'WorkItem',
+              matched.id,
+              'unit',
+              matched.unit,
+              r.unit ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'WorkItem',
+              matched.id,
+              'designQuantity',
+              matched.designQuantity,
+              r.designQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'WorkItem',
+              matched.id,
+              'previousAccumulatedQuantity',
+              matched.previousAccumulatedQuantity,
+              r.previousAccumulatedQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'WorkItem',
+              matched.id,
+              'todayQuantity',
+              matched.todayQuantity,
+              r.todayQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'WorkItem',
+              matched.id,
+              'currentAccumulatedQuantity',
+              matched.currentAccumulatedQuantity,
+              r.currentAccumulatedQuantity ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'WorkItem',
+              matched.id,
+              'completionPercent',
+              matched.completionPercent,
+              r.completionPercent ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'WorkItem',
+              matched.id,
+              'personInCharge',
+              matched.personInCharge,
+              r.personInCharge ?? null,
+            );
+            await this.logCellChange(
+              tx,
+              userId,
+              report.projectId,
+              reportId,
+              'WorkItem',
+              matched.id,
+              'note',
+              matched.note,
+              r.note ?? null,
+            );
+          }
           await tx.workItem.update({
             where: { id: r.id },
             data,
@@ -1500,11 +1963,18 @@ export class ReportsService {
       // Write to disk
       await fsPromises.writeFile(filePath, pdfBuffer);
 
+      const latestVersion = await this.prisma.reportVersion.findFirst({
+        where: { reportId },
+        orderBy: { versionNo: 'desc' },
+      });
+      const versionId = latestVersion ? latestVersion.id : null;
+
       // 5. Save ReportExport metadata
       const fileUrl = `/uploads/exports/${fileName}`;
       const created = await this.prisma.reportExport.create({
         data: {
           reportId,
+          versionId,
           format: 'PDF',
           fileUrl,
           fileName,
@@ -1555,10 +2025,17 @@ export class ReportsService {
 
       await fsPromises.writeFile(filePath, excelBuffer);
 
+      const latestVersion = await this.prisma.reportVersion.findFirst({
+        where: { reportId },
+        orderBy: { versionNo: 'desc' },
+      });
+      const versionId = latestVersion ? latestVersion.id : null;
+
       const fileUrl = `/uploads/exports/${fileName}`;
       const created = await this.prisma.reportExport.create({
         data: {
           reportId,
+          versionId,
           format: 'EXCEL',
           fileUrl,
           fileName,
@@ -1621,10 +2098,17 @@ export class ReportsService {
 
       await fsPromises.writeFile(filePath, wordBuffer);
 
+      const latestVersion = await this.prisma.reportVersion.findFirst({
+        where: { reportId },
+        orderBy: { versionNo: 'desc' },
+      });
+      const versionId = latestVersion ? latestVersion.id : null;
+
       const fileUrl = `/uploads/exports/${fileName}`;
       const created = await this.prisma.reportExport.create({
         data: {
           reportId,
+          versionId,
           format: 'WORD',
           fileUrl,
           fileName,
@@ -1714,10 +2198,17 @@ export class ReportsService {
       const txtBuffer = Buffer.from(content, 'utf8');
       await fsPromises.writeFile(filePath, txtBuffer);
 
+      const latestVersion = await this.prisma.reportVersion.findFirst({
+        where: { reportId },
+        orderBy: { versionNo: 'desc' },
+      });
+      const versionId = latestVersion ? latestVersion.id : null;
+
       const fileUrl = `/uploads/exports/${fileName}`;
       const created = await this.prisma.reportExport.create({
         data: {
           reportId,
+          versionId,
           format: 'TXT',
           fileUrl,
           fileName,
@@ -1745,5 +2236,198 @@ export class ReportsService {
         `Không thể kết xuất TXT: ${(err as Error).message}`,
       );
     }
+  }
+
+  async createAdjustment(
+    reportId: number,
+    changeReason: string,
+    userId: number,
+  ) {
+    const report = await this.findOne(reportId);
+
+    if (report.status !== 'APPROVED' && report.status !== 'SENT') {
+      throw new BadRequestException(
+        'Chỉ báo cáo đã phê duyệt hoặc đã gửi mới có thể tạo bản điều chỉnh',
+      );
+    }
+
+    const versionCount = await this.prisma.reportVersion.count({
+      where: { reportId },
+    });
+    const nextVersionNo = versionCount + 1;
+
+    const reportData = await this.getReportDataForExport(reportId);
+
+    return this.prisma.$transaction(async (tx) => {
+      const version = await tx.reportVersion.create({
+        data: {
+          reportId,
+          versionNo: nextVersionNo,
+          snapshot: JSON.parse(
+            JSON.stringify(reportData),
+          ) as Prisma.InputJsonValue,
+          changeReason,
+          createdById: userId,
+        },
+      });
+
+      await tx.report.update({
+        where: { id: reportId },
+        data: { status: 'DRAFT' },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          projectId: report.projectId,
+          reportId,
+          entityType: 'Report',
+          entityId: reportId,
+          action: 'CREATE_ADJUSTMENT',
+          newValue: JSON.stringify({ versionNo: nextVersionNo, changeReason }),
+          reason: `Tạo bản điều chỉnh phiên bản v${nextVersionNo}: ${changeReason}`,
+        },
+      });
+
+      return version;
+    });
+  }
+
+  async getVersions(reportId: number) {
+    const versions = await this.prisma.reportVersion.findMany({
+      where: { reportId },
+      orderBy: { versionNo: 'desc' },
+    });
+
+    const userIds = Array.from(new Set(versions.map((v) => v.createdById)));
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true, email: true },
+    });
+
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    return versions.map((v) => ({
+      ...v,
+      createdBy: userMap.get(v.createdById) || null,
+    }));
+  }
+
+  async getVersion(reportId: number, versionId: number) {
+    const version = await this.prisma.reportVersion.findFirst({
+      where: { id: versionId, reportId },
+    });
+
+    if (!version) {
+      throw new NotFoundException(
+        `Không tìm thấy phiên bản có ID ${versionId}`,
+      );
+    }
+
+    const createdBy = await this.prisma.user.findUnique({
+      where: { id: version.createdById },
+      select: { id: true, name: true, email: true },
+    });
+
+    return {
+      ...version,
+      createdBy: createdBy || null,
+    };
+  }
+
+  async getAuditLogs(reportId: number) {
+    const logs = await this.prisma.auditLog.findMany({
+      where: { reportId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const userIds = Array.from(
+      new Set(logs.map((l) => l.userId).filter((id): id is number => !!id)),
+    );
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true, email: true },
+    });
+
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    return logs.map((l) => ({
+      ...l,
+      user: l.userId ? userMap.get(l.userId) || null : null,
+    }));
+  }
+
+  private valueToString(val: unknown): string {
+    if (val === null || val === undefined) return '';
+    if (val instanceof Date) {
+      return val.toISOString();
+    }
+    if (typeof val === 'object') {
+      const obj = val as Record<string, unknown>;
+      if ('toNumber' in obj && typeof obj.toNumber === 'function') {
+        const toNumberFn = obj.toNumber as () => unknown;
+        return String(toNumberFn());
+      }
+      return JSON.stringify(val);
+    }
+    if (typeof val === 'string') {
+      return val.trim();
+    }
+    if (typeof val === 'number' || typeof val === 'boolean') {
+      return String(val);
+    }
+    return '';
+  }
+
+  private compareValues(val1: unknown, val2: unknown): boolean {
+    if (val1 === val2) return true;
+
+    const isEmpty1 = val1 === null || val1 === undefined || val1 === '';
+    const isEmpty2 = val2 === null || val2 === undefined || val2 === '';
+    if (isEmpty1 && isEmpty2) return true;
+    if (isEmpty1 !== isEmpty2) return false;
+
+    const str1 = this.valueToString(val1);
+    const str2 = this.valueToString(val2);
+
+    const num1 = Number(str1);
+    const num2 = Number(str2);
+    if (!isNaN(num1) && !isNaN(num2) && str1 !== '' && str2 !== '') {
+      return num1 === num2;
+    }
+
+    return str1 === str2;
+  }
+
+  private async logCellChange(
+    tx: Prisma.TransactionClient,
+    userId: number,
+    projectId: number,
+    reportId: number,
+    entityType: string,
+    entityId: number,
+    fieldName: string,
+    oldValue: unknown,
+    newValue: unknown,
+  ) {
+    if (this.compareValues(oldValue, newValue)) return;
+
+    const oldStr = this.valueToString(oldValue);
+    const newStr = this.valueToString(newValue);
+
+    await tx.auditLog.create({
+      data: {
+        userId,
+        projectId,
+        reportId,
+        entityType,
+        entityId,
+        action: 'UPDATE_CELL',
+        fieldName,
+        oldValue: oldStr,
+        newValue: newStr,
+        reason: `Thay đổi ${fieldName} từ "${oldStr}" thành "${newStr}"`,
+      },
+    });
   }
 }
