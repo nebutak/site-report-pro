@@ -6,6 +6,10 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
+import { UpdateWeatherDto } from './dto/update-weather.dto';
+import { UpdateManpowerDto } from './dto/update-manpower.dto';
+import { UpdateEquipmentDto } from './dto/update-equipment.dto';
+import { UpdateMaterialDto } from './dto/update-material.dto';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -608,6 +612,351 @@ export class ReportsService {
       });
 
       return deleted;
+    });
+  }
+
+  // --- PHASE 4 METHODS ---
+
+  async getWeather(reportId: number) {
+    return this.prisma.weatherRow.findMany({
+      where: { reportId },
+    });
+  }
+
+  async updateWeather(reportId: number, dto: UpdateWeatherDto, userId: number) {
+    const report = await this.findOne(reportId);
+
+    if (report.status === 'APPROVED' || report.status === 'SENT') {
+      throw new BadRequestException(
+        'Báo cáo đã được duyệt hoặc gửi, không thể chỉnh sửa thời tiết',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.weatherRow.deleteMany({
+        where: { reportId },
+      });
+
+      if (dto.rows && dto.rows.length > 0) {
+        await tx.weatherRow.createMany({
+          data: dto.rows.map((w) => ({
+            reportId,
+            period: w.period,
+            isSunny: w.isSunny || false,
+            isRainy: w.isRainy || false,
+            isNormal: w.isNormal || false,
+            wind: w.wind || null,
+            wave: w.wave || null,
+            swell: w.swell || null,
+            note: w.note || null,
+          })),
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          projectId: report.projectId,
+          reportId,
+          entityType: 'Weather',
+          entityId: reportId,
+          action: 'UPDATE_WEATHER',
+          newValue: JSON.stringify(dto.rows),
+          reason: 'Cập nhật bảng thời tiết',
+        },
+      });
+
+      return tx.weatherRow.findMany({
+        where: { reportId },
+      });
+    });
+  }
+
+  async getManpower(reportId: number) {
+    return this.prisma.manpowerRow.findMany({
+      where: { reportId },
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
+
+  async updateManpower(
+    reportId: number,
+    dto: UpdateManpowerDto,
+    userId: number,
+  ) {
+    const report = await this.findOne(reportId);
+
+    if (report.status === 'APPROVED' || report.status === 'SENT') {
+      throw new BadRequestException(
+        'Báo cáo đã được duyệt hoặc gửi, không thể chỉnh sửa nhân lực',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.manpowerRow.findMany({
+        where: { reportId },
+      });
+
+      const existingIds = existing.map((e) => e.id);
+      const incomingIds = dto.rows
+        .map((r) => r.id)
+        .filter((id): id is number => !!id && id > 0);
+
+      const idsToDelete = existingIds.filter((id) => !incomingIds.includes(id));
+      if (idsToDelete.length > 0) {
+        await tx.manpowerRow.deleteMany({
+          where: { id: { in: idsToDelete } },
+        });
+      }
+
+      for (const r of dto.rows) {
+        const data = {
+          reportId,
+          sortOrder: r.sortOrder,
+          name: r.name,
+          unit: r.unit || null,
+          previousQuantity:
+            r.previousQuantity !== undefined
+              ? new Prisma.Decimal(r.previousQuantity)
+              : null,
+          changeQuantity:
+            r.changeQuantity !== undefined
+              ? new Prisma.Decimal(r.changeQuantity)
+              : null,
+          todayQuantity:
+            r.todayQuantity !== undefined
+              ? new Prisma.Decimal(r.todayQuantity)
+              : null,
+          managerQuantity:
+            r.managerQuantity !== undefined
+              ? new Prisma.Decimal(r.managerQuantity)
+              : null,
+          staffQuantity:
+            r.staffQuantity !== undefined
+              ? new Prisma.Decimal(r.staffQuantity)
+              : null,
+          overtimeQuantity:
+            r.overtimeQuantity !== undefined
+              ? new Prisma.Decimal(r.overtimeQuantity)
+              : null,
+          securityQuantity:
+            r.securityQuantity !== undefined
+              ? new Prisma.Decimal(r.securityQuantity)
+              : null,
+          note: r.note || null,
+        };
+
+        if (r.id && r.id > 0) {
+          await tx.manpowerRow.update({
+            where: { id: r.id },
+            data,
+          });
+        } else {
+          await tx.manpowerRow.create({
+            data,
+          });
+        }
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          projectId: report.projectId,
+          reportId,
+          entityType: 'Manpower',
+          entityId: reportId,
+          action: 'UPDATE_MANPOWER',
+          newValue: JSON.stringify(dto.rows),
+          reason: 'Cập nhật bảng nhân lực',
+        },
+      });
+
+      return tx.manpowerRow.findMany({
+        where: { reportId },
+        orderBy: { sortOrder: 'asc' },
+      });
+    });
+  }
+
+  async getEquipment(reportId: number) {
+    return this.prisma.equipmentRow.findMany({
+      where: { reportId },
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
+
+  async updateEquipment(
+    reportId: number,
+    dto: UpdateEquipmentDto,
+    userId: number,
+  ) {
+    const report = await this.findOne(reportId);
+
+    if (report.status === 'APPROVED' || report.status === 'SENT') {
+      throw new BadRequestException(
+        'Báo cáo đã được duyệt hoặc gửi, không thể chỉnh sửa thiết bị',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.equipmentRow.findMany({
+        where: { reportId },
+      });
+
+      const existingIds = existing.map((e) => e.id);
+      const incomingIds = dto.rows
+        .map((r) => r.id)
+        .filter((id): id is number => !!id && id > 0);
+
+      const idsToDelete = existingIds.filter((id) => !incomingIds.includes(id));
+      if (idsToDelete.length > 0) {
+        await tx.equipmentRow.deleteMany({
+          where: { id: { in: idsToDelete } },
+        });
+      }
+
+      for (const r of dto.rows) {
+        const data = {
+          reportId,
+          sortOrder: r.sortOrder,
+          name: r.name,
+          unit: r.unit || null,
+          previousQuantity:
+            r.previousQuantity !== undefined
+              ? new Prisma.Decimal(r.previousQuantity)
+              : null,
+          changeQuantity:
+            r.changeQuantity !== undefined
+              ? new Prisma.Decimal(r.changeQuantity)
+              : null,
+          todayQuantity:
+            r.todayQuantity !== undefined
+              ? new Prisma.Decimal(r.todayQuantity)
+              : null,
+          normalQuantity:
+            r.normalQuantity !== undefined
+              ? new Prisma.Decimal(r.normalQuantity)
+              : null,
+          repairingQuantity:
+            r.repairingQuantity !== undefined
+              ? new Prisma.Decimal(r.repairingQuantity)
+              : null,
+          brokenQuantity:
+            r.brokenQuantity !== undefined
+              ? new Prisma.Decimal(r.brokenQuantity)
+              : null,
+          note: r.note || null,
+        };
+
+        if (r.id && r.id > 0) {
+          await tx.equipmentRow.update({
+            where: { id: r.id },
+            data,
+          });
+        } else {
+          await tx.equipmentRow.create({
+            data,
+          });
+        }
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          projectId: report.projectId,
+          reportId,
+          entityType: 'Equipment',
+          entityId: reportId,
+          action: 'UPDATE_EQUIPMENT',
+          newValue: JSON.stringify(dto.rows),
+          reason: 'Cập nhật bảng thiết bị',
+        },
+      });
+
+      return tx.equipmentRow.findMany({
+        where: { reportId },
+        orderBy: { sortOrder: 'asc' },
+      });
+    });
+  }
+
+  async getMaterials(reportId: number) {
+    return this.prisma.materialRow.findMany({
+      where: { reportId },
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
+
+  async updateMaterials(
+    reportId: number,
+    dto: UpdateMaterialDto,
+    userId: number,
+  ) {
+    const report = await this.findOne(reportId);
+
+    if (report.status === 'APPROVED' || report.status === 'SENT') {
+      throw new BadRequestException(
+        'Báo cáo đã được duyệt hoặc gửi, không thể chỉnh sửa vật liệu',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.materialRow.findMany({
+        where: { reportId },
+      });
+
+      const existingIds = existing.map((e) => e.id);
+      const incomingIds = dto.rows
+        .map((r) => r.id)
+        .filter((id): id is number => !!id && id > 0);
+
+      const idsToDelete = existingIds.filter((id) => !incomingIds.includes(id));
+      if (idsToDelete.length > 0) {
+        await tx.materialRow.deleteMany({
+          where: { id: { in: idsToDelete } },
+        });
+      }
+
+      for (const r of dto.rows) {
+        const data = {
+          reportId,
+          sortOrder: r.sortOrder,
+          name: r.name,
+          unit: r.unit || null,
+          quantity:
+            r.quantity !== undefined ? new Prisma.Decimal(r.quantity) : null,
+          note: r.note || null,
+        };
+
+        if (r.id && r.id > 0) {
+          await tx.materialRow.update({
+            where: { id: r.id },
+            data,
+          });
+        } else {
+          await tx.materialRow.create({
+            data,
+          });
+        }
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          projectId: report.projectId,
+          reportId,
+          entityType: 'Material',
+          entityId: reportId,
+          action: 'UPDATE_MATERIAL',
+          newValue: JSON.stringify(dto.rows),
+          reason: 'Cập nhật bảng vật liệu',
+        },
+      });
+
+      return tx.materialRow.findMany({
+        where: { reportId },
+        orderBy: { sortOrder: 'asc' },
+      });
     });
   }
 }

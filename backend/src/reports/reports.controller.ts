@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Patch,
   Param,
@@ -15,6 +16,10 @@ import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { CloneReportDto } from './dto/clone-report.dto';
+import { UpdateWeatherDto } from './dto/update-weather.dto';
+import { UpdateManpowerDto } from './dto/update-manpower.dto';
+import { UpdateEquipmentDto } from './dto/update-equipment.dto';
+import { UpdateMaterialDto } from './dto/update-material.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
@@ -145,5 +150,84 @@ export class ReportsController {
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: unknown) {
     const reqUser = this.checkRoles(user, ['ADMIN', 'PROJECT_MANAGER']);
     return this.reportsService.remove(id, reqUser.id);
+  }
+
+  // --- PHASE 4 ENDPOINTS ---
+
+  @Get(':id/weather')
+  getWeather(@Param('id', ParseIntPipe) id: number) {
+    return this.reportsService.getWeather(id);
+  }
+
+  @Put(':id/weather')
+  updateWeather(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateWeatherDto,
+    @CurrentUser() user: unknown,
+  ) {
+    const reqUser = this.checkRoles(user, [
+      'ADMIN',
+      'PROJECT_MANAGER',
+      'REPORTER',
+    ]);
+    return this.reportsService.updateWeather(id, dto, reqUser.id);
+  }
+
+  @Get(':id/manpower')
+  getManpower(@Param('id', ParseIntPipe) id: number) {
+    return this.reportsService.getManpower(id);
+  }
+
+  @Put(':id/manpower')
+  updateManpower(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateManpowerDto,
+    @CurrentUser() user: unknown,
+  ) {
+    const reqUser = this.checkRoles(user, [
+      'ADMIN',
+      'PROJECT_MANAGER',
+      'REPORTER',
+    ]);
+    return this.reportsService.updateManpower(id, dto, reqUser.id);
+  }
+
+  @Get(':id/equipment')
+  getEquipment(@Param('id', ParseIntPipe) id: number) {
+    return this.reportsService.getEquipment(id);
+  }
+
+  @Put(':id/equipment')
+  updateEquipment(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateEquipmentDto,
+    @CurrentUser() user: unknown,
+  ) {
+    const reqUser = this.checkRoles(user, [
+      'ADMIN',
+      'PROJECT_MANAGER',
+      'REPORTER',
+    ]);
+    return this.reportsService.updateEquipment(id, dto, reqUser.id);
+  }
+
+  // Materials routes (mapping both /material and /materials)
+  @Get([':id/materials', ':id/material'])
+  getMaterials(@Param('id', ParseIntPipe) id: number) {
+    return this.reportsService.getMaterials(id);
+  }
+
+  @Put([':id/materials', ':id/material'])
+  updateMaterials(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateMaterialDto,
+    @CurrentUser() user: unknown,
+  ) {
+    const reqUser = this.checkRoles(user, [
+      'ADMIN',
+      'PROJECT_MANAGER',
+      'REPORTER',
+    ]);
+    return this.reportsService.updateMaterials(id, dto, reqUser.id);
   }
 }
