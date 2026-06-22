@@ -11,7 +11,11 @@ import { UpdateManpowerDto } from './dto/update-manpower.dto';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { UpdateWorkItemDto } from './dto/update-work-item.dto';
+import { UpdateImagesDto } from './dto/update-images.dto';
 import { Prisma } from '@prisma/client';
+import sharp from 'sharp';
+import { existsSync, mkdirSync, promises as fsPromises } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class ReportsService {
@@ -1040,7 +1044,7 @@ export class ReportsService {
         row.completionPercent =
           row.designQuantity > 0
             ? (row.currentAccumulatedQuantity / row.designQuantity) * 100
-            : null;
+            : undefined;
       } else {
         const prev = row.previousAccumulatedQuantity || 0;
         const today = row.todayQuantity || 0;
@@ -1048,7 +1052,7 @@ export class ReportsService {
         row.completionPercent =
           row.designQuantity && row.designQuantity > 0
             ? (row.currentAccumulatedQuantity / row.designQuantity) * 100
-            : null;
+            : undefined;
       }
     };
 
@@ -1162,5 +1166,194 @@ export class ReportsService {
         orderBy: { sortOrder: 'asc' },
       });
     });
+  }
+
+  async getImages(reportId: number) {
+    return this.prisma.reportImage.findMany({
+      where: { reportId },
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
+
+  async uploadImage(
+    reportId: number,
+    file: Express.Multer.File,
+    userId: number,
+  ) {
+    const report = await this.findOne(reportId);
+
+    if (report.status === 'APPROVED' || report.status === 'SENT') {
+      try {
+        await fsPromises.unlink(file.path);
+      } catch {
+        // ignore
+      }
+      throw new BadRequestException(
+        'Báo cáo đã được duyệt hoặc gửi, không thể tải lên hình ảnh mới',
+      );
+    }
+
+    const mainPath = file.path;
+    const thumbDir = './uploads/images/thumbnails';
+    if (!existsSync(thumbDir)) {
+      mkdirSync(thumbDir, { recursive: true });
+    }
+    const thumbPath = join(thumbDir, file.filename);
+
+    try {
+      const buffer = await fsPromises.readFile(mainPath);
+      const resizedBuffer = await sharp(buffer)
+        .resize({ width: 1920, withoutEnlargement: true })
+        .toBuffer();
+      await fsPromises.writeFile(mainPath, resizedBuffer);
+
+      await sharp(resizedBuffer).resize({ width: 400 }).toFile(thumbPath);
+    } catch (err) {
+      try {
+        await fsPromises.unlink(mainPath);
+      } catch {
+        // ignore
+      }
+      try {
+        await fsPromises.unlink(thumbPath);
+      } catch {
+        // ignore
+      }
+      throw new BadRequestException(
+        `Không thể xử lý hình ảnh: ${(err as Error).message}`,
+      );
+    }
+
+    const count = await this.prisma.reportImage.count({
+      where: { reportId },
+    });
+
+    const fileUrl = `/uploads/images/${file.filename}`;
+    const thumbnailUrl = `/uploads/images/thumbnails/${file.filename}`;
+
+    const created = await this.prisma.reportImage.create({
+      data: {
+        reportId,
+        fileUrl,
+        thumbnailUrl,
+        sortOrder: count + 1,
+        caption:
+          file.originalname.substring(0, file.originalname.lastIndexOf('.')) ||
+          file.originalname,
+        sizeBytes: file.size,
+        mimeType: file.mimetype,
+        createdById: userId,
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId,
+        projectId: report.projectId,
+        reportId,
+        entityType: 'ReportImage',
+        entityId: created.id,
+        action: 'UPLOAD_IMAGE',
+        newValue: JSON.stringify(created),
+        reason: 'Tải lên hình ảnh thi công',
+      },
+    });
+
+    return created;
+  }
+
+  async updateImagesMetadata(
+    reportId: number,
+    dto: UpdateImagesDto,
+    userId: number,
+  ) {
+    const report = await this.findOne(reportId);
+
+    if (report.status === 'APPROVED' || report.status === 'SENT') {
+      throw new BadRequestException(
+        'Báo cáo đã được duyệt hoặc gửi, không thể cập nhật thông tin ảnh',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const row of dto.rows) {
+        await tx.reportImage.update({
+          where: { id: row.id, reportId },
+          data: {
+            caption: row.caption || null,
+            sortOrder: row.sortOrder,
+          },
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          projectId: report.projectId,
+          reportId,
+          entityType: 'ReportImage',
+          entityId: reportId,
+          action: 'UPDATE_IMAGES_METADATA',
+          newValue: JSON.stringify(dto.rows),
+          reason: 'Cập nhật metadata chú thích và thứ tự sắp xếp ảnh',
+        },
+      });
+    });
+
+    return this.getImages(reportId);
+  }
+
+  async deleteImage(imageId: number, userId: number) {
+    const image = await this.prisma.reportImage.findUnique({
+      where: { id: imageId },
+      include: { report: true },
+    });
+
+    if (!image) {
+      throw new NotFoundException('Không tìm thấy hình ảnh yêu cầu');
+    }
+
+    if (image.report.status === 'APPROVED' || image.report.status === 'SENT') {
+      throw new BadRequestException(
+        'Báo cáo đã được duyệt hoặc gửi, không thể xóa hình ảnh',
+      );
+    }
+
+    await this.prisma.reportImage.delete({
+      where: { id: imageId },
+    });
+
+    if (image.fileUrl) {
+      const relativeMainPath = `.${image.fileUrl}`;
+      try {
+        await fsPromises.unlink(relativeMainPath);
+      } catch {
+        // ignore
+      }
+    }
+
+    if (image.thumbnailUrl) {
+      const relativeThumbPath = `.${image.thumbnailUrl}`;
+      try {
+        await fsPromises.unlink(relativeThumbPath);
+      } catch {
+        // ignore
+      }
+    }
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId,
+        projectId: image.report.projectId,
+        reportId: image.reportId,
+        entityType: 'ReportImage',
+        entityId: imageId,
+        action: 'DELETE_IMAGE',
+        oldValue: JSON.stringify(image),
+        reason: 'Xóa hình ảnh thi công',
+      },
+    });
+
+    return { success: true };
   }
 }

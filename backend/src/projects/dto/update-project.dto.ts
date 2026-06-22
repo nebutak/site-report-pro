@@ -43,4 +43,8 @@ export class UpdateProjectDto {
   @IsString({ message: 'Trạng thái dự án phải là chuỗi ký tự' })
   @IsOptional()
   status?: string;
+
+  @IsString({ message: 'Đường dẫn logo phải là chuỗi ký tự' })
+  @IsOptional()
+  logoUrl?: string;
 }

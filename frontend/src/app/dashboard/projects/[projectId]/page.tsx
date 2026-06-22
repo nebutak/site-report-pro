@@ -75,7 +75,7 @@ const getLocalDateString = () => {
 const reportSchema = z.object({
   reportDate: z.string().min(1, { message: 'Ngày báo cáo không được để trống' }),
   reportType: z.enum(['DAILY', 'SUMMARY', 'V2'], {
-    errorMap: () => ({ message: 'Vui lòng chọn loại báo cáo' }),
+    message: 'Vui lòng chọn loại báo cáo',
   }),
   cloneFromPrevious: z.boolean(),
   sourceReportId: z.string().optional(),

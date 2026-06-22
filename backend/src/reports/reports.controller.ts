@@ -11,7 +11,14 @@ import {
   Query,
   ParseIntPipe,
   ForbiddenException,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
@@ -21,6 +28,7 @@ import { UpdateManpowerDto } from './dto/update-manpower.dto';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { UpdateWorkItemDto } from './dto/update-work-item.dto';
+import { UpdateImagesDto } from './dto/update-images.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
@@ -249,5 +257,89 @@ export class ReportsController {
       'REPORTER',
     ]);
     return this.reportsService.updateWorkItems(id, dto, reqUser.id);
+  }
+
+  @Get(':id/images')
+  getImages(@Param('id', ParseIntPipe) id: number) {
+    return this.reportsService.getImages(id);
+  }
+
+  @Post(':id/images')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const uploadPath = './uploads/images';
+          if (!existsSync(uploadPath)) {
+            mkdirSync(uploadPath, { recursive: true });
+          }
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          const id =
+            typeof req.params['id'] === 'string' ? req.params['id'] : 'unknown';
+          cb(null, `img-${id}-${uniqueSuffix}${ext}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
+          return cb(
+            new BadRequestException(
+              'Chỉ cho phép tải lên file ảnh (jpg, jpeg, png, webp)',
+            ),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+      },
+    }),
+  )
+  uploadImage(
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: unknown,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Không nhận được file tải lên');
+    }
+    const reqUser = this.checkRoles(user, [
+      'ADMIN',
+      'PROJECT_MANAGER',
+      'REPORTER',
+    ]);
+    return this.reportsService.uploadImage(id, file, reqUser.id);
+  }
+
+  @Put(':id/images')
+  updateImagesMetadata(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateImagesDto,
+    @CurrentUser() user: unknown,
+  ) {
+    const reqUser = this.checkRoles(user, [
+      'ADMIN',
+      'PROJECT_MANAGER',
+      'REPORTER',
+    ]);
+    return this.reportsService.updateImagesMetadata(id, dto, reqUser.id);
+  }
+
+  @Delete('images/:imageId')
+  deleteImage(
+    @Param('imageId', ParseIntPipe) imageId: number,
+    @CurrentUser() user: unknown,
+  ) {
+    const reqUser = this.checkRoles(user, [
+      'ADMIN',
+      'PROJECT_MANAGER',
+      'REPORTER',
+    ]);
+    return this.reportsService.deleteImage(imageId, reqUser.id);
   }
 }

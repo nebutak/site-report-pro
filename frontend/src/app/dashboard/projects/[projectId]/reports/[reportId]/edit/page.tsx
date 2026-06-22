@@ -200,6 +200,17 @@ interface ApiWorkItemRow {
   formula: unknown;
 }
 
+interface ReportImage {
+  id: number;
+  reportId: number;
+  fileUrl: string;
+  thumbnailUrl?: string | null;
+  caption?: string | null;
+  sortOrder: number;
+  sizeBytes?: number | null;
+  mimeType?: string | null;
+}
+
 const editReportSchema = z.object({
   reportNo: z.string().min(1, { message: 'Số báo cáo không được để trống' }),
   title: z.string().min(1, { message: 'Tiêu đề không được để trống' }),
@@ -232,6 +243,9 @@ export default function ReportEditPage() {
   const [workItemRows, setWorkItemRows] = useState<WorkItemRow[]>([]);
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
   const [excelPasteText, setExcelPasteText] = useState('');
+  const [reportImages, setReportImages] = useState<ReportImage[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [tabLoading, setTabLoading] = useState(false);
   const [tabError, setTabError] = useState<string | null>(null);
@@ -410,6 +424,11 @@ export default function ReportEditPage() {
               formula: w.formula,
             })));
           }
+        } else if (activeTab === 'images') {
+          const data = await apiClient.get<ReportImage[]>(`/reports/${reportId}/images`);
+          if (active) {
+            setReportImages(data);
+          }
         }
       } catch (err) {
         const apiError = err as { message?: string };
@@ -423,7 +442,7 @@ export default function ReportEditPage() {
       }
     };
 
-    if (['weather', 'manpower', 'equipment', 'materials', 'workitems'].includes(activeTab)) {
+    if (['weather', 'manpower', 'equipment', 'materials', 'workitems', 'images'].includes(activeTab)) {
       void loadTabData();
     }
 
@@ -1181,6 +1200,101 @@ export default function ReportEditPage() {
     }
   };
 
+  // Image handlers
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!reportId || !e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Kích thước ảnh vượt quá 5MB. Vui lòng chọn ảnh nhỏ hơn.');
+      return;
+    }
+
+    setUploadError(null);
+    setIsUploading(true);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await apiClient.post<ReportImage>(`/reports/${reportId}/images`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      setReportImages([...reportImages, response]);
+      setTabSuccessMsg('Tải lên hình ảnh thành công!');
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setUploadError(apiError.message || 'Lỗi khi tải ảnh lên');
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleImageCaptionChange = (index: number, caption: string) => {
+    const updated = [...reportImages];
+    updated[index] = { ...updated[index], caption };
+    setReportImages(updated);
+  };
+
+  const handleMoveImage = (index: number, direction: 'up' | 'down') => {
+    const updated = [...reportImages];
+    if (direction === 'up' && index > 0) {
+      const temp = updated[index];
+      updated[index] = updated[index - 1];
+      updated[index - 1] = temp;
+    } else if (direction === 'down' && index < updated.length - 1) {
+      const temp = updated[index];
+      updated[index] = updated[index + 1];
+      updated[index + 1] = temp;
+    }
+
+    const sorted = updated.map((img, i) => ({ ...img, sortOrder: i + 1 }));
+    setReportImages(sorted);
+  };
+
+  const handleDeleteImage = async (imageId: number) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa hình ảnh này không?')) return;
+    setTabError(null);
+    setTabSuccessMsg(null);
+    setTabLoading(true);
+    try {
+      await apiClient.delete(`/reports/images/${imageId}`);
+      setReportImages(reportImages.filter(img => img.id !== imageId));
+      setTabSuccessMsg('Đã xóa hình ảnh thi công thành công!');
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setTabError(apiError.message || 'Lỗi khi xóa hình ảnh');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const handleSaveImagesMetadata = async () => {
+    if (!reportId) return;
+    setTabError(null);
+    setTabSuccessMsg(null);
+    setTabLoading(true);
+    try {
+      const rows = reportImages.map(img => ({
+        id: img.id,
+        caption: img.caption || '',
+        sortOrder: img.sortOrder,
+      }));
+      await apiClient.put(`/reports/${reportId}/images`, { rows });
+      setTabSuccessMsg('Đã lưu thông tin chú thích và sắp xếp ảnh thành công!');
+      const updated = await apiClient.get<ReportImage[]>(`/reports/${reportId}/images`);
+      setReportImages(updated);
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setTabError(apiError.message || 'Lỗi khi lưu thông tin hình ảnh');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
   if (authLoading || isLoading) {
     return (
       <div className="flex h-64 w-full items-center justify-center">
@@ -1876,10 +1990,11 @@ export default function ReportEditPage() {
                                 }`}
                               />
                               {isMismatch && (
-                                <AlertTriangle 
-                                  className="h-4 w-4 text-yellow-500 shrink-0 cursor-help" 
-                                  title={`Số liệu lệch! Trước (${prev}) + Thay đổi (${change}) = ${prev + change}, nhưng nhập là ${today}`}
-                                />
+                                <span title={`Số liệu lệch! Trước (${prev}) + Thay đổi (${change}) = ${prev + change}, nhưng nhập là ${today}`}>
+                                  <AlertTriangle 
+                                    className="h-4 w-4 text-yellow-500 shrink-0 cursor-help" 
+                                  />
+                                </span>
                               )}
                             </div>
                           </td>
@@ -2108,10 +2223,11 @@ export default function ReportEditPage() {
                                 }`}
                               />
                               {hasWarning && (
-                                <AlertTriangle 
-                                  className="h-4 w-4 text-yellow-500 shrink-0 cursor-help" 
-                                  title={warningTitle.trim()}
-                                />
+                                <span title={warningTitle.trim()}>
+                                  <AlertTriangle 
+                                    className="h-4 w-4 text-yellow-500 shrink-0 cursor-help" 
+                                  />
+                                </span>
                               )}
                             </div>
                           </td>
@@ -2599,14 +2715,182 @@ export default function ReportEditPage() {
           </div>
         )}
 
-        {/* Tab 7: Images Placeholder */}
+        {/* Tab 7: Images Tab */}
         {activeTab === 'images' && (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <ImageIcon className="h-12 w-12 text-slate-700 mb-3" />
-            <h3 className="text-base font-semibold text-slate-350">Hình ảnh thi công & Sơ họa</h3>
-            <p className="text-xs text-slate-500 mt-2 max-w-sm">
-              Tính năng tải lên, resize ảnh, ghi chú thích và sắp xếp thứ tự ảnh hiển thị sẽ khả dụng trong **Phase 6: Image Management**.
-            </p>
+          <div className="space-y-6">
+            {isFinalized && (
+              <div className="flex items-start gap-3 rounded-lg bg-yellow-950/40 border border-yellow-800/40 p-3 text-xs text-yellow-200 mb-4">
+                <Lock className="h-4 w-4 shrink-0 text-yellow-450" />
+                <span>Báo cáo này đã chốt, không thể tải lên hoặc chỉnh sửa hình ảnh.</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-blue-500" />
+                Hình ảnh thi công & Sơ họa
+              </h3>
+              {!isFinalized && canEdit && reportImages.length > 0 && (
+                <button
+                  onClick={() => void handleSaveImagesMetadata()}
+                  disabled={tabLoading}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer"
+                >
+                  <Save className="h-4 w-4" />
+                  Lưu hình ảnh
+                </button>
+              )}
+            </div>
+
+            {tabError && (
+              <div className="flex items-start gap-3 rounded-lg bg-red-950/50 border border-red-800/60 p-3 text-xs text-red-200">
+                <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
+                <span>{tabError}</span>
+              </div>
+            )}
+
+            {tabSuccessMsg && (
+              <div className="flex items-center gap-3 rounded-lg bg-emerald-950/40 border border-emerald-800/40 p-3 text-xs text-emerald-255">
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-450" />
+                <span>{tabSuccessMsg}</span>
+              </div>
+            )}
+
+            {/* Upload Zone */}
+            {!isFinalized && canEdit && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-center w-full">
+                  <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-slate-800 border-dashed rounded-xl cursor-pointer bg-slate-950/20 hover:bg-slate-900/20 hover:border-slate-700 transition">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="w-8 h-8 mb-3 animate-spin text-blue-500" />
+                          <p className="text-xs text-slate-350 font-medium">Đang xử lý và tải ảnh lên...</p>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="w-8 h-8 mb-3 text-slate-500" />
+                          <p className="mb-2 text-xs text-slate-300 font-semibold">
+                            Kéo thả hoặc Click để tải hình ảnh lên
+                          </p>
+                          <p className="text-3xs text-slate-550">JPEG, PNG, WEBP (Tối đa 5MB)</p>
+                        </>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleUploadImage}
+                      disabled={isUploading}
+                    />
+                  </label>
+                </div>
+                {uploadError && (
+                  <p className="text-xs text-red-400 font-medium">{uploadError}</p>
+                )}
+              </div>
+            )}
+
+            {/* Images Grid */}
+            {tabLoading && reportImages.length === 0 ? (
+              <div className="flex h-32 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-slate-555" />
+              </div>
+            ) : reportImages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-slate-800 rounded-xl">
+                <ImageIcon className="h-8 w-8 text-slate-700 mb-2" />
+                <h4 className="text-xs font-semibold text-slate-400">Không có hình ảnh nào</h4>
+                <p className="text-3xs text-slate-500 mt-1">Hãy kéo thả hoặc chọn tệp ảnh để thêm vào báo cáo</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                {reportImages.map((img, index) => {
+                  const sizeKB = img.sizeBytes ? (img.sizeBytes / 1024).toFixed(1) : '---';
+                  const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL
+                    ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '')
+                    : 'http://localhost:3001';
+                  const fullImageUrl = img.fileUrl ? `${backendBaseUrl}${img.fileUrl}` : '#';
+                  const previewUrl = img.thumbnailUrl ? `${backendBaseUrl}${img.thumbnailUrl}` : fullImageUrl;
+
+                  return (
+                    <div
+                      key={img.id}
+                      className="bg-slate-950/40 border border-slate-850 rounded-xl overflow-hidden flex flex-col group hover:border-slate-750 transition"
+                    >
+                      {/* Image Preview Container */}
+                      <div className="h-40 bg-slate-950 relative overflow-hidden flex items-center justify-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={previewUrl}
+                          alt={img.caption || 'Thi công'}
+                          className="object-contain h-full w-full max-h-full transition duration-300 group-hover:scale-105"
+                        />
+                        <a
+                          href={fullImageUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs font-semibold text-white transition backdrop-blur-[2px]"
+                        >
+                          Xem ảnh gốc
+                        </a>
+                      </div>
+
+                      {/* Info & Caption Input */}
+                      <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                            <span>Thứ tự: {img.sortOrder}</span>
+                            <span>{sizeKB} KB</span>
+                          </div>
+                          
+                          <input
+                            type="text"
+                            disabled={isFinalized || !canEdit}
+                            value={img.caption || ''}
+                            onChange={(e) => handleImageCaptionChange(index, e.target.value)}
+                            placeholder="Nhập chú thích ảnh..."
+                            className="w-full rounded bg-slate-950 border border-slate-850 py-1.5 px-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-550 transition font-medium"
+                          />
+                        </div>
+
+                        {/* Actions */}
+                        {!isFinalized && canEdit && (
+                          <div className="flex items-center justify-between border-t border-slate-900/60 pt-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleMoveImage(index, 'up')}
+                                disabled={index === 0}
+                                className="h-7 w-7 inline-flex items-center justify-center rounded border border-slate-850 hover:border-slate-700 bg-slate-950/20 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                                title="Di chuyển lên"
+                              >
+                                ←
+                              </button>
+                              <button
+                                onClick={() => handleMoveImage(index, 'down')}
+                                disabled={index === reportImages.length - 1}
+                                className="h-7 w-7 inline-flex items-center justify-center rounded border border-slate-850 hover:border-slate-700 bg-slate-950/20 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                                title="Di chuyển xuống"
+                              >
+                                →
+                              </button>
+                            </div>
+
+                            <button
+                              onClick={() => void handleDeleteImage(img.id)}
+                              className="h-7 w-7 inline-flex items-center justify-center rounded border border-slate-850 hover:border-red-800/80 bg-slate-950/20 hover:bg-red-950/20 text-slate-500 hover:text-red-400 transition cursor-pointer"
+                              title="Xóa hình ảnh"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
