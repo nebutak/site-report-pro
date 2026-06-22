@@ -3,7 +3,6 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { User } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
@@ -18,9 +17,21 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: unknown) {
-    const typedUser = user as User;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...result } = typedUser;
-    return result;
+    const typedUser = user as {
+      id: number;
+      name: string;
+      email: string;
+      role: {
+        name: string;
+        permissions: unknown;
+      };
+    };
+    return {
+      id: typedUser.id,
+      name: typedUser.name,
+      email: typedUser.email,
+      role: typedUser.role.name,
+      permissions: typedUser.role.permissions,
+    };
   }
 }
