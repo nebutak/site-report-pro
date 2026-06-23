@@ -7,8 +7,8 @@ export class CreateProjectDto {
 
   @IsString({ message: 'Mã dự án phải là chuỗi ký tự' })
   @IsNotEmpty({ message: 'Mã dự án không được để trống' })
-  @Matches(/^[A-Z0-9_-]+$/, {
-    message: 'Mã dự án chỉ được chứa chữ hoa, số, dấu gạch ngang và gạch dưới',
+  @Matches(/^[a-zA-Z0-9_-]+$/, {
+    message: 'Mã dự án chỉ được chứa chữ cái, số, dấu gạch ngang và gạch dưới',
   })
   code: string;
 
