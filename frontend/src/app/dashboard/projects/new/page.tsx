@@ -24,9 +24,11 @@ const projectSchema = z.object({
   code: z
     .string()
     .min(1, { message: 'Mã dự án không được để trống' })
-    .regex(/^[A-Z0-9_-]+$/, {
-      message: 'Mã dự án chỉ được chứa chữ hoa, số, dấu gạch ngang và gạch dưới',
-    }),
+    .trim()
+    .regex(/^[a-zA-Z0-9_-]+$/, {
+      message: 'Mã dự án chỉ được chứa chữ cái, số, dấu gạch ngang và gạch dưới',
+    })
+    .transform((val) => val.toUpperCase()),
   ownerName: z.string().optional(),
   supervisorName: z.string().optional(),
   contractorName: z.string().optional(),
