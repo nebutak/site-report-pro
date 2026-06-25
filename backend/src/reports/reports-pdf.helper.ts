@@ -93,6 +93,9 @@ export interface ExportReportData {
     contractorName: string | null;
     location: string | null;
     logoUrl: string | null;
+    defaultReporterName?: string | null;
+    defaultReceiver?: string | null;
+    defaultCc?: string | null;
   };
   createdBy: {
     name: string;
@@ -127,14 +130,6 @@ function formatNumber(numInput: any): string {
   });
 }
 
-function formatPercent(numInput: any): string {
-  if (numInput === null || numInput === undefined || numInput === '')
-    return '---';
-  const num = Number(numInput);
-  if (isNaN(num)) return '---';
-  return num.toFixed(2) + '%';
-}
-
 export function generateDailyReportHtml(
   data: ExportReportData,
   baseUrl: string,
@@ -149,166 +144,479 @@ export function generateDailyReportHtml(
     images,
   } = data;
 
-  const logoHtml = project.logoUrl
-    ? `<img src="${baseUrl}${project.logoUrl}" alt="Logo" class="logo" />`
-    : '<div class="logo-placeholder"></div>';
+  const renderPageHeaderHtml = () => {
+    const logoHtml = project.logoUrl
+      ? `<img src="${baseUrl}${project.logoUrl}" alt="Logo" class="logo" />`
+      : `<div class="logo-text-fallback">${(project.contractorName || 'DACINCO').substring(0, 20).toUpperCase()}</div>`;
 
-  // Weather rows HTML
-  const weatherRowsHtml =
-    weatherRows.length > 0
-      ? weatherRows
-          .map(
-            (w) => `
-        <tr>
-          <td style="font-weight: bold; width: 120px;">Buổi ${w.period === 'MORNING' ? 'Sáng' : w.period === 'AFTERNOON' ? 'Chiều' : w.period === 'EVENING' ? 'Tối' : w.period}</td>
-          <td style="text-align: center;">${w.isSunny ? '✓' : ''}</td>
-          <td style="text-align: center;">${w.isRainy ? '✓' : ''}</td>
-          <td style="text-align: center;">${w.isNormal ? '✓' : ''}</td>
-          <td>${w.wind || ''}</td>
-          <td>${w.wave || ''}</td>
-          <td>${w.swell || ''}</td>
-          <td>${w.note || ''}</td>
-        </tr>
-      `,
-          )
-          .join('')
-      : '<tr><td colspan="8" style="text-align: center; color: #777;">Không có dữ liệu thời tiết</td></tr>';
+    const getPeriodWeather = (periodName: string) => {
+      const keys = 
+        periodName === 'Sáng' || periodName === 'MORNING' ? ['sáng', 'morning'] :
+        periodName === 'Chiều' || periodName === 'AFTERNOON' ? ['chiều', 'afternoon'] :
+        periodName === 'Tối' || periodName === 'EVENING' ? ['tối', 'evening'] : [periodName.toLowerCase().trim()];
+      
+      const row = weatherRows.find((w) => w.period && keys.includes(w.period.toLowerCase().trim()));
+      return row || {
+        isSunny: false,
+        isRainy: false,
+        isNormal: false,
+        wind: '',
+        wave: '',
+        swell: '',
+      };
+    };
 
-  // Manpower rows HTML
-  const manpowerRowsHtml =
-    manpowerRows.length > 0
-      ? manpowerRows
-          .map((m) => {
-            const mismatch =
-              m.previousQuantity !== null &&
-              m.changeQuantity !== null &&
-              m.todayQuantity !== null &&
-              Number(m.previousQuantity) + Number(m.changeQuantity) !==
-                Number(m.todayQuantity);
-            const warningStyle = mismatch
-              ? 'background-color: #fff9e6; color: #b27a00; font-weight: 500;'
-              : '';
+    const morningWeather = getPeriodWeather('Sáng');
+    const afternoonWeather = getPeriodWeather('Chiều');
+    const eveningWeather = getPeriodWeather('Tối');
 
-            return `
-          <tr style="${warningStyle}">
+    return `
+    <table class="pdf-header-table">
+      <tr>
+        <td rowspan="5" class="header-logo-cell">
+          ${logoHtml}
+        </td>
+        <td class="info-lbl">Dự án:</td>
+        <td class="info-val">${project.name}</td>
+        <td rowspan="5" class="header-iso-cell">
+          <svg class="iso-svg" width="65" height="75" viewBox="0 0 100 115">
+            <!-- Globe container -->
+            <g stroke="#0054a6" stroke-width="2.5" fill="none">
+              <!-- Outer circle -->
+              <circle cx="50" cy="42" r="38" stroke-width="3" />
+              
+              <!-- Top Polar Fan Lines -->
+              <path d="M 50 4 L 12 42" />
+              <path d="M 50 4 L 31 42" />
+              <path d="M 50 4 L 50 42" />
+              <path d="M 50 4 L 69 42" />
+              <path d="M 50 4 L 88 42" />
+              
+              <!-- Bottom Polar Fan Lines -->
+              <path d="M 50 80 L 12 42" />
+              <path d="M 50 80 L 31 42" />
+              <path d="M 50 80 L 50 42" />
+              <path d="M 50 80 L 69 42" />
+              <path d="M 50 80 L 88 42" />
+              
+              <!-- Top Latitude curves -->
+              <path d="M 16 26 A 38 22 0 0 1 84 26" />
+              <path d="M 12 42 A 38 10 0 0 1 88 42" />
+              
+              <!-- Bottom Latitude curves -->
+              <path d="M 16 58 A 38 22 0 0 0 84 58" />
+            </g>
+            
+            <!-- Text Mask Block -->
+            <rect x="10" y="30" width="80" height="24" fill="#ffffff" />
+            
+            <!-- ISO text -->
+            <text x="50" y="52" font-family="'Arial Black', Arial, sans-serif" font-size="25" font-weight="900" fill="#0054a6" text-anchor="middle" letter-spacing="-1">ISO</text>
+            
+            <!-- 9001:2015 text -->
+            <text x="50" y="102" font-family="'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="bold" fill="#0054a6" text-anchor="middle">9001:2015</text>
+          </svg>
+        </td>
+      </tr>
+      <tr>
+        <td class="info-lbl">ĐD Chủ đầu tư:</td>
+        <td class="info-val">${project.ownerName || '---'}</td>
+      </tr>
+      <tr>
+        <td class="info-lbl">Tư vấn giám sát:</td>
+        <td class="info-val">${project.supervisorName || '---'}</td>
+      </tr>
+      <tr>
+        <td class="info-lbl">Nhà thầu chính:</td>
+        <td class="info-val">${project.contractorName || '---'}</td>
+      </tr>
+      <tr>
+        <td class="info-lbl">Địa điểm:</td>
+        <td class="info-val">${project.location || '---'}</td>
+      </tr>
+    </table>
+
+    <div class="report-title-container">
+      <h2 class="report-title">${(data.title || 'BÁO CÁO NHẬT KÝ THI CÔNG HÀNG NGÀY').toUpperCase()}</h2>
+    </div>
+
+    <table class="meta-weather-table">
+      <!-- Row 1 -->
+      <tr>
+        <td class="meta-lbl">Người báo cáo:</td>
+        <td class="meta-val">${project.defaultReporterName || data.createdBy.name}</td>
+        <th rowspan="3" style="width: 70px;">Thời tiết</th>
+        <th rowspan="3" style="width: 35px;">Nắng</th>
+        <th rowspan="3" style="width: 35px;">Mưa</th>
+        <th rowspan="3" style="width: 50px;">B.Thường</th>
+        <th rowspan="3" style="width: 90px;">Gió (cấp)</th>
+        <th rowspan="3" style="width: 70px;">Sóng (m)</th>
+        <th rowspan="3">Sóng lừng (hướng/ m/s)</th>
+      </tr>
+      <!-- Row 2 -->
+      <tr>
+        <td class="meta-lbl">Người nhận:</td>
+        <td class="meta-val">${project.defaultReceiver || 'Ban lãnh đạo công ty'}</td>
+      </tr>
+      <!-- Row 3 -->
+      <tr>
+        <td class="meta-lbl">Cc:</td>
+        <td class="meta-val">${project.defaultCc || 'Ban điều hành dự án'}</td>
+      </tr>
+      <!-- Row 4 -->
+      <tr>
+        <td class="meta-lbl">Báo cáo số:</td>
+        <td class="meta-val">${data.reportNo || '---'}</td>
+        <td style="font-weight: bold; text-align: center; background-color: #fafafa;">Sáng</td>
+        <td style="text-align: center; font-size: 13px;">${morningWeather.isSunny ? '☑' : '☐'}</td>
+        <td style="text-align: center; font-size: 13px;">${morningWeather.isRainy ? '☑' : '☐'}</td>
+        <td style="text-align: center; font-size: 13px;">${morningWeather.isNormal ? '☑' : '☐'}</td>
+        <td style="font-size: 10px; padding: 2px 4px;">${morningWeather.wind || ''}</td>
+        <td style="font-size: 10px; padding: 2px 4px;">${morningWeather.wave || ''}</td>
+        <td style="font-size: 10px; padding: 2px 4px;">${morningWeather.swell || ''}</td>
+      </tr>
+      <!-- Row 5 -->
+      <tr>
+        <td class="meta-lbl">Báo cáo ngày:</td>
+        <td class="meta-val" style="color: red; font-weight: bold;">${formatDate(data.reportDate)}</td>
+        <td style="font-weight: bold; text-align: center; background-color: #fafafa;">Chiều</td>
+        <td style="text-align: center; font-size: 13px;">${afternoonWeather.isSunny ? '☑' : '☐'}</td>
+        <td style="text-align: center; font-size: 13px;">${afternoonWeather.isRainy ? '☑' : '☐'}</td>
+        <td style="text-align: center; font-size: 13px;">${afternoonWeather.isNormal ? '☑' : '☐'}</td>
+        <td style="font-size: 10px; padding: 2px 4px;">${afternoonWeather.wind || ''}</td>
+        <td style="font-size: 10px; padding: 2px 4px;">${afternoonWeather.wave || ''}</td>
+        <td style="font-size: 10px; padding: 2px 4px;">${afternoonWeather.swell || ''}</td>
+      </tr>
+      <!-- Row 6 -->
+      <tr>
+        <td class="meta-lbl">Ngày phát hành:</td>
+        <td class="meta-val" style="color: red; font-weight: bold;">${formatDate(data.issueDate || data.reportDate)}</td>
+        <td style="font-weight: bold; text-align: center; background-color: #fafafa;">Tối</td>
+        <td style="text-align: center; font-size: 13px;">${eveningWeather.isSunny ? '☑' : '☐'}</td>
+        <td style="text-align: center; font-size: 13px;">${eveningWeather.isRainy ? '☑' : '☐'}</td>
+        <td style="text-align: center; font-size: 13px;">${eveningWeather.isNormal ? '☑' : '☐'}</td>
+        <td style="font-size: 10px; padding: 2px 4px;">${eveningWeather.wind || ''}</td>
+        <td style="font-size: 10px; padding: 2px 4px;">${eveningWeather.wave || ''}</td>
+        <td style="font-size: 10px; padding: 2px 4px;">${eveningWeather.swell || ''}</td>
+      </tr>
+    </table>
+    `;
+  };
+
+  // Section I: Equipment and Materials side-by-side
+  const maxEqMatRows = Math.max(equipmentRows.length, materialRows.length);
+  const eqMatRows = [];
+  for (let i = 0; i < maxEqMatRows; i++) {
+    eqMatRows.push({
+      eq: equipmentRows[i] || null,
+      mat: materialRows[i] || null,
+    });
+  }
+
+  const eqMatRowsHtml = eqMatRows.length > 0
+    ? eqMatRows.map((row, idx) => {
+        const eqCell = row.eq 
+          ? `<td style="text-align: center;">${idx + 1}</td>
+             <td>${(row.eq.name || '').replace(/\n/g, '<br/>')}</td>
+             <td style="text-align: right; font-weight: bold;">${formatNumber(row.eq.todayQuantity)} ${row.eq.unit || 'chiếc'}</td>`
+          : `<td style="text-align: center;"></td><td></td><td></td>`;
+        
+        const matCell = row.mat
+          ? `<td>${(row.mat.name || '').replace(/\n/g, '<br/>')}</td>
+             <td style="text-align: right; font-weight: bold;">${formatNumber(row.mat.quantity)} ${row.mat.unit || 'Tấn'}</td>`
+          : `<td></td><td></td>`;
+          
+        return `<tr>${eqCell}${matCell}</tr>`;
+      }).join('')
+    : '<tr><td colspan="5" style="text-align: center; color: #777;">Không có dữ liệu thiết bị và vật tư</td></tr>';
+
+  // Section II: Manpower
+  let totalManager = 0;
+  let totalStaff = 0;
+  let totalOvertime = 0;
+  let totalSecurity = 0;
+
+  const manpowerRowsHtml = manpowerRows.length > 0
+    ? manpowerRows.map((m, idx) => {
+        totalManager += Number(m.managerQuantity || 0);
+        totalStaff += Number(m.staffQuantity || 0);
+        totalOvertime += Number(m.overtimeQuantity || 0);
+        totalSecurity += Number(m.securityQuantity || 0);
+
+        return `
+          <tr>
+            <td style="text-align: center;">${idx + 1}</td>
             <td>${m.name}</td>
-            <td style="text-align: center;">${m.unit || '---'}</td>
-            <td style="text-align: right;">${formatNumber(m.previousQuantity)}</td>
-            <td style="text-align: right;">${m.changeQuantity !== null && Number(m.changeQuantity) >= 0 ? '+' : ''}${formatNumber(m.changeQuantity)}</td>
-            <td style="text-align: right; font-weight: bold;">${formatNumber(m.todayQuantity)}</td>
-            <td style="text-align: right;">${formatNumber(m.managerQuantity)}</td>
-            <td style="text-align: right;">${formatNumber(m.staffQuantity)}</td>
-            <td style="text-align: right;">${formatNumber(m.overtimeQuantity)}</td>
-            <td style="text-align: right;">${formatNumber(m.securityQuantity)}</td>
+            <td style="text-align: right;">${m.managerQuantity ? formatNumber(m.managerQuantity) : ''}</td>
+            <td style="text-align: right;">${m.staffQuantity ? formatNumber(m.staffQuantity) : ''}</td>
+            <td style="text-align: right;">${m.overtimeQuantity ? formatNumber(m.overtimeQuantity) : ''}</td>
+            <td style="text-align: right;">${m.securityQuantity ? formatNumber(m.securityQuantity) : ''}</td>
             <td>${m.note || ''}</td>
           </tr>
         `;
-          })
-          .join('')
-      : '<tr><td colspan="10" style="text-align: center; color: #777;">Không có dữ liệu nhân sự</td></tr>';
+      }).join('')
+    : '<tr><td colspan="7" style="text-align: center; color: #777;">Không có dữ liệu nhân sự</td></tr>';
 
-  // Equipment rows HTML
-  const equipmentRowsHtml =
-    equipmentRows.length > 0
-      ? equipmentRows
-          .map((e) => {
-            const mismatchState =
-              e.normalQuantity !== null &&
-              e.repairingQuantity !== null &&
-              e.brokenQuantity !== null &&
-              e.todayQuantity !== null &&
-              Number(e.normalQuantity) +
-                Number(e.repairingQuantity) +
-                Number(e.brokenQuantity) !==
-                Number(e.todayQuantity);
-            const warningStyle = mismatchState
-              ? 'background-color: #fff9e6; color: #b27a00; font-weight: 500;'
-              : '';
+  const totalManpowerToday = totalManager + totalStaff + totalOvertime + totalSecurity;
 
-            return `
-          <tr style="${warningStyle}">
-            <td style="white-space: pre-wrap;">${e.name}</td>
-            <td style="text-align: center;">${e.unit || '---'}</td>
-            <td style="text-align: right;">${formatNumber(e.previousQuantity)}</td>
-            <td style="text-align: right;">${e.changeQuantity !== null && Number(e.changeQuantity) >= 0 ? '+' : ''}${formatNumber(e.changeQuantity)}</td>
-            <td style="text-align: right; font-weight: bold;">${formatNumber(e.todayQuantity)}</td>
-            <td style="text-align: right;">${formatNumber(e.normalQuantity)}</td>
-            <td style="text-align: right;">${formatNumber(e.repairingQuantity)}</td>
-            <td style="text-align: right;">${formatNumber(e.brokenQuantity)}</td>
-            <td>${e.note || ''}</td>
-          </tr>
-        `;
-          })
-          .join('')
-      : '<tr><td colspan="9" style="text-align: center; color: #777;">Không có dữ liệu thiết bị thi công</td></tr>';
-
-  // Material rows HTML
-  const materialRowsHtml =
-    materialRows.length > 0
-      ? materialRows
-          .map(
-            (m) => `
-        <tr>
-          <td>${m.name}</td>
-          <td style="text-align: center;">${m.unit || '---'}</td>
-          <td style="text-align: right; font-weight: bold;">${formatNumber(m.quantity)}</td>
-          <td>${m.note || ''}</td>
-        </tr>
-      `,
-          )
-          .join('')
-      : '<tr><td colspan="4" style="text-align: center; color: #777;">Không có dữ liệu vật tư</td></tr>';
-
-  // Work items tree-grid rows HTML
-  const workItemsRowsHtml =
-    workItems.length > 0
-      ? workItems
-          .map((item) => {
-            const indentStyle = `padding-left: ${item.level * 16}px;`;
-            const groupStyle = item.isGroup
-              ? 'font-weight: bold; background-color: #fafafa;'
-              : '';
-            return `
+  // Section III: Work Items
+  let groupIndex = 0;
+  const workItemsRowsHtml = workItems.length > 0
+    ? workItems.map((item) => {
+        let ttVal = '&nbsp;';
+        if (item.level === 0) {
+          groupIndex++;
+          ttVal = String(groupIndex);
+        } else if (item.level === 1) {
+          ttVal = '-';
+        }
+        const indentStyle = `padding-left: ${item.level * 16}px;`;
+        const groupStyle = item.isGroup
+          ? 'font-weight: bold; background-color: #fafafa;'
+          : '';
+        return `
           <tr style="${groupStyle}">
-            <td style="${indentStyle}">${item.isGroup ? '📁 ' : ''}${item.name}</td>
-            <td style="text-align: center; font-size: 10px; color: #555;">${item.code || ''}</td>
+            <td style="text-align: center;">${ttVal}</td>
+            <td style="${indentStyle}">${item.name}</td>
             <td style="text-align: center;">${item.unit || '---'}</td>
             <td style="text-align: right;">${formatNumber(item.designQuantity)}</td>
             <td style="text-align: right;">${formatNumber(item.previousAccumulatedQuantity)}</td>
             <td style="text-align: right;">${formatNumber(item.todayQuantity)}</td>
             <td style="text-align: right; font-weight: bold;">${formatNumber(item.currentAccumulatedQuantity)}</td>
-            <td style="text-align: right; font-weight: bold; color: ${item.completionPercent && Number(item.completionPercent) >= 100 ? '#10b981' : '#4b5563'};">${formatPercent(item.completionPercent)}</td>
-            <td style="font-size: 10px;">${item.personInCharge || ''}</td>
-            <td style="font-size: 10px;">${item.note || ''}</td>
+            <td>${item.personInCharge || ''}</td>
           </tr>
         `;
-          })
-          .join('')
-      : '<tr><td colspan="10" style="text-align: center; color: #777;">Không có dữ liệu hạng mục thi công</td></tr>';
+      }).join('')
+    : '<tr><td colspan="8" style="text-align: center; color: #777;">Không có dữ liệu hạng mục thi công</td></tr>';
 
-  // Images grid HTML
-  const imagesHtml =
-    images.length > 0
-      ? `
-      <div class="images-section">
-        <h3>IV. Hình ảnh thi công</h3>
-        <div class="images-grid">
-          ${images
-            .map(
-              (img) => `
-            <div class="image-card">
-              <div class="image-container">
-                <img src="${baseUrl}${img.fileUrl}" alt="${img.caption || 'Thi công'}" />
+  // Section IV: Images Pages
+  const imagesPagesHtml = [];
+  const imagesPerPage = 3;
+  if (images && images.length > 0) {
+    let imgPageIdx = 0;
+    for (let i = 0; i < images.length; i += imagesPerPage) {
+      const pageImages = images.slice(i, i + imagesPerPage);
+      
+      let rowsHtml = '';
+      if (pageImages.length === 3) {
+        if (imgPageIdx % 2 === 0) {
+          // 2 at top, 1 at bottom
+          rowsHtml = `
+            <tr>
+              <td style="width: 40px; border-right: 1px solid #000; border-bottom: 1px solid #000;"></td>
+              <td style="border: 1px solid #000; text-align: center; padding: 8px; width: calc((100% - 40px)/2);">
+                <div class="img-box">
+                  <img src="${baseUrl}${pageImages[0].fileUrl}" alt="${pageImages[0].caption || 'Thi công'}" />
+                  <div class="image-caption">${pageImages[0].caption || 'Thi công'}</div>
+                </div>
+              </td>
+              <td style="border: 1px solid #000; text-align: center; padding: 8px; width: calc((100% - 40px)/2);">
+                <div class="img-box">
+                  <img src="${baseUrl}${pageImages[1].fileUrl}" alt="${pageImages[1].caption || 'Thi công'}" />
+                  <div class="image-caption">${pageImages[1].caption || 'Thi công'}</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="width: 40px; border-right: 1px solid #000; border-bottom: 1px solid #000;"></td>
+              <td colspan="2" style="border: 1px solid #000; text-align: center; padding: 8px;">
+                <div class="img-box">
+                  <img src="${baseUrl}${pageImages[2].fileUrl}" alt="${pageImages[2].caption || 'Thi công'}" />
+                  <div class="image-caption">${pageImages[2].caption || 'Thi công'}</div>
+                </div>
+              </td>
+            </tr>
+          `;
+        } else {
+          // 1 at top, 2 at bottom
+          rowsHtml = `
+            <tr>
+              <td style="width: 40px; border-right: 1px solid #000; border-bottom: 1px solid #000;"></td>
+              <td colspan="2" style="border: 1px solid #000; text-align: center; padding: 8px;">
+                <div class="img-box">
+                  <img src="${baseUrl}${pageImages[0].fileUrl}" alt="${pageImages[0].caption || 'Thi công'}" />
+                  <div class="image-caption">${pageImages[0].caption || 'Thi công'}</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="width: 40px; border-right: 1px solid #000; border-bottom: 1px solid #000;"></td>
+              <td style="border: 1px solid #000; text-align: center; padding: 8px; width: calc((100% - 40px)/2);">
+                <div class="img-box">
+                  <img src="${baseUrl}${pageImages[1].fileUrl}" alt="${pageImages[1].caption || 'Thi công'}" />
+                  <div class="image-caption">${pageImages[1].caption || 'Thi công'}</div>
+                </div>
+              </td>
+              <td style="border: 1px solid #000; text-align: center; padding: 8px; width: calc((100% - 40px)/2);">
+                <div class="img-box">
+                  <img src="${baseUrl}${pageImages[2].fileUrl}" alt="${pageImages[2].caption || 'Thi công'}" />
+                  <div class="image-caption">${pageImages[2].caption || 'Thi công'}</div>
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+      } else if (pageImages.length === 2) {
+        // 2 side-by-side
+        rowsHtml = `
+          <tr>
+            <td style="width: 40px; border-right: 1px solid #000; border-bottom: 1px solid #000;"></td>
+            <td style="border: 1px solid #000; text-align: center; padding: 8px; width: calc((100% - 40px)/2);">
+              <div class="img-box">
+                <img src="${baseUrl}${pageImages[0].fileUrl}" alt="${pageImages[0].caption || 'Thi công'}" />
+                <div class="image-caption">${pageImages[0].caption || 'Thi công'}</div>
               </div>
-              <div class="image-caption">${img.caption || 'Thi công'}</div>
-            </div>
-          `,
-            )
-            .join('')}
+            </td>
+            <td style="border: 1px solid #000; text-align: center; padding: 8px; width: calc((100% - 40px)/2);">
+              <div class="img-box">
+                <img src="${baseUrl}${pageImages[1].fileUrl}" alt="${pageImages[1].caption || 'Thi công'}" />
+                <div class="image-caption">${pageImages[1].caption || 'Thi công'}</div>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        // 1 full width
+        rowsHtml = `
+          <tr>
+            <td style="width: 40px; border-right: 1px solid #000; border-bottom: 1px solid #000;"></td>
+            <td colspan="2" style="border: 1px solid #000; text-align: center; padding: 8px;">
+              <div class="img-box">
+                <img src="${baseUrl}${pageImages[0].fileUrl}" alt="${pageImages[0].caption || 'Thi công'}" />
+                <div class="image-caption">${pageImages[0].caption || 'Thi công'}</div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+
+      imagesPagesHtml.push(`
+        <div class="page-container">
+          ${renderPageHeaderHtml()}
+          
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+            <thead>
+              <tr>
+                <th style="width: 40px; border: 1px solid #000; text-align: center; background-color: #fafafa;">IV</th>
+                <th colspan="2" style="border: 1px solid #000; text-align: left; padding: 6px 10px; background-color: #fafafa; font-weight: bold;">HÌNH ẢNH THI CÔNG</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
         </div>
-      </div>
-    `
-      : '';
+      `);
+      
+      imgPageIdx++;
+    }
+  }
+
+  // Signatures Section
+  const signaturesHtml = `
+  <div class="signatures-section">
+    <div class="sig-block">
+      <div class="sig-title">ĐẠI DIỆN TƯ VẤN GIÁM SÁT</div>
+      <div class="sig-name">${project.supervisorName || '---'}</div>
+    </div>
+    <div class="sig-block">
+      <div class="sig-title">ĐẠI DIỆN NHÀ THẦU CHÍNH</div>
+      <div class="sig-name">${project.contractorName || '---'}</div>
+    </div>
+    <div class="sig-block">
+      <div class="sig-title">NGƯỜI LẬP BÁO CÁO</div>
+      <div class="sig-name">${data.createdBy.name}</div>
+    </div>
+  </div>
+  `;
+
+  // Construct page content flows
+  let page1Content = `
+    <div class="page-container">
+      ${renderPageHeaderHtml()}
+      
+      <!-- Section I: Equipment and Materials side-by-side -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+        <thead>
+          <tr>
+            <th style="width: 40px; text-align: center;">I</th>
+            <th colspan="2" style="text-align: center; background-color: #fafafa;">Các thiết bị chính trên công trường</th>
+            <th colspan="2" style="text-align: center; background-color: #fafafa;">Vật liệu chính nhập vào công trường</th>
+          </tr>
+          <tr>
+            <th style="width: 40px; text-align: center;">TT</th>
+            <th>Tên thiết bị</th>
+            <th style="width: 100px; text-align: center;">Số lượng</th>
+            <th>Tên vật tư</th>
+            <th style="width: 100px; text-align: center;">Khối lượng</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${eqMatRowsHtml}
+        </tbody>
+      </table>
+
+      <!-- Section II: Manpower -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+        <thead>
+          <tr>
+            <th style="width: 40px; text-align: center;">II</th>
+            <th>Nhân sự trên công trường</th>
+            <th style="width: 80px; text-align: center;">Quản lý</th>
+            <th style="width: 80px; text-align: center;">Nhân sự</th>
+            <th style="width: 100px; text-align: center;">Nhân sự tăng ca</th>
+            <th style="width: 80px; text-align: center;">Bảo vệ</th>
+            <th style="text-align: center;">Ghi chú</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${manpowerRowsHtml}
+          <tr style="font-weight: bold; background-color: #fafafa;">
+            <td colspan="2" style="text-align: center;">Tổng cộng nhân sự</td>
+            <td style="text-align: right;">${totalManager ? formatNumber(totalManager) : ''}</td>
+            <td style="text-align: right;">${totalStaff ? formatNumber(totalStaff) : ''}</td>
+            <td style="text-align: right;">${totalOvertime ? formatNumber(totalOvertime) : ''}</td>
+            <td style="text-align: right;">${totalSecurity ? formatNumber(totalSecurity) : ''}</td>
+            <td>Lũy kế: ${formatNumber(totalManpowerToday)} người</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  let page2Content = `
+    <div class="page-container">
+      ${renderPageHeaderHtml()}
+      
+      <!-- Section III: Work Items -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+        <thead>
+          <tr>
+            <th style="width: 40px; text-align: center;">III</th>
+            <th>Công việc thực hiện trong ngày</th>
+            <th style="width: 60px; text-align: center;">Đơn vị</th>
+            <th style="width: 100px; text-align: center;">% Đánh giá</th>
+            <th style="width: 100px; text-align: center;">Thực hiện</th>
+            <th style="width: 100px; text-align: center;">Hôm nay</th>
+            <th style="width: 100px; text-align: center;">Luỹ kế</th>
+            <th style="width: 120px; text-align: center;">P. Trách</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${workItemsRowsHtml}
+        </tbody>
+      </table>
+      ${imagesPagesHtml.length === 0 ? signaturesHtml : ''}
+    </div>
+  `;
+
+  let pagesHtml = page1Content + page2Content;
+
+  if (imagesPagesHtml.length > 0) {
+    const lastImgIdx = imagesPagesHtml.length - 1;
+    imagesPagesHtml[lastImgIdx] = imagesPagesHtml[lastImgIdx].replace(/<\/div>\s*$/, `${signaturesHtml}</div>`);
+    pagesHtml += imagesPagesHtml.join('');
+  }
 
   return `
 <!DOCTYPE html>
@@ -318,193 +626,177 @@ export function generateDailyReportHtml(
   <title>Báo cáo nhật ký thi công hàng ngày</title>
   <style>
     body {
-      font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+      font-family: "Times New Roman", Times, serif;
       font-size: 11px;
-      line-height: 1.4;
-      color: #333;
+      line-height: 1.3;
+      color: #000;
       margin: 0;
       padding: 0;
       background-color: #fff;
     }
     
-    .logo-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 25px;
-      border-bottom: 2px solid #3b82f6;
-      padding-bottom: 12px;
+    .page-container {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10mm 15mm;
+      position: relative;
+      background-color: #fff;
     }
-    
-    .logo-container {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      width: 60%;
-    }
-    
-    .logo {
-      max-height: 48px;
-      max-width: 140px;
-      object-fit: contain;
-    }
-    
-    .logo-placeholder {
-      width: 4px;
-      height: 36px;
-      background-color: #3b82f6;
-    }
-    
-    .company-info h1 {
-      font-size: 14px;
-      margin: 0 0 3px 0;
-      color: #1e3a8a;
-      font-weight: bold;
-    }
-    
-    .company-info p {
-      font-size: 9px;
-      margin: 0;
-      color: #666;
-    }
-    
-    .report-meta {
-      text-align: right;
-      width: 35%;
-      font-size: 10px;
-      color: #444;
-    }
-    
-    .report-title-container {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    
-    .report-title {
-      font-size: 16px;
-      font-weight: bold;
-      color: #1e3a8a;
-      text-transform: uppercase;
-      margin: 0 0 5px 0;
-    }
-    
-    .report-subtitle {
-      font-size: 11px;
-      font-style: italic;
-      color: #555;
-      margin: 0;
-    }
-    
-    .info-section {
-      margin-bottom: 20px;
-      background-color: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 10px 12px;
-    }
-    
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px 20px;
-    }
-    
-    .info-item {
-      display: flex;
-    }
-    
-    .info-label {
-      font-weight: bold;
-      width: 140px;
-      color: #475569;
-    }
-    
-    .info-value {
-      flex: 1;
-      color: #0f172a;
-    }
-    
-    h3 {
-      font-size: 12px;
-      font-weight: bold;
-      color: #1e3a8a;
-      margin: 18px 0 8px 0;
-      border-left: 3px solid #3b82f6;
-      padding-left: 8px;
-    }
-    
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 15px;
-      font-size: 10px;
+      margin-bottom: 12px;
+      font-size: 10.5px;
     }
     
     th, td {
-      border: 1px solid #cbd5e1;
-      padding: 5px 6px;
+      border: 1px solid #000;
+      padding: 4px 6px;
       text-align: left;
+      vertical-align: middle;
     }
     
     th {
-      background-color: #f1f5f9;
-      color: #1e293b;
       font-weight: bold;
       text-align: center;
+      background-color: #fafafa;
+    }
+
+    /* Top Header Table */
+    .pdf-header-table {
+      margin-bottom: 8px;
     }
     
-    .text-center {
+    .header-logo-cell {
+      width: 140px;
+      text-align: center;
+      vertical-align: middle;
+      padding: 2px;
+      height: 90px;
+    }
+    
+    .logo {
+      max-height: 82px;
+      max-width: 135px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }
+    
+    .logo-text-fallback {
+      font-size: 14px;
+      font-weight: bold;
+      color: #000;
       text-align: center;
     }
     
-    .text-right {
-      text-align: right;
+    .info-lbl {
+      width: 110px;
+      font-weight: normal !important;
+      font-size: 10.5px;
+      color: #000;
+      padding: 3px 6px;
     }
     
-    .images-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      margin-top: 10px;
+    .info-val {
+      font-weight: bold;
+      font-size: 10.5px;
+      color: #000;
+      padding: 3px 6px;
     }
     
-    .image-card {
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      overflow: hidden;
-      background-color: #fff;
+    .header-iso-cell {
+      width: 110px;
+      text-align: center;
+      vertical-align: middle;
+      padding: 2px;
+    }
+    
+    .iso-logo {
       display: flex;
       flex-direction: column;
-      page-break-inside: avoid;
-    }
-    
-    .image-container {
-      height: 180px;
-      background-color: #f1f5f9;
-      display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
+      padding: 2px;
     }
     
-    .image-container img {
-      max-height: 100%;
+    .iso-svg {
+      display: block;
+      margin: 0 auto;
+    }
+    
+    .iso-number {
+      font-size: 11px;
+      font-weight: bold;
+      color: #0054a6;
+      text-align: center;
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    
+    /* Report Title */
+    .report-title-container {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    
+    .report-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: #000;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Meta & Weather Table */
+    .meta-weather-table {
+      margin-bottom: 12px;
+    }
+    
+    .meta-lbl {
+      width: 100px;
+      font-weight: normal !important;
+      font-size: 10.5px;
+      padding: 3px 6px;
+    }
+    
+    .meta-val {
+      width: 150px;
+      font-weight: bold;
+      font-size: 10.5px;
+      padding: 3px 6px;
+    }
+    
+    /* Image Section inside table */
+    .img-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+    }
+    
+    .img-box img {
       max-width: 100%;
+      max-height: 220px;
       object-fit: contain;
+      border: 1px solid #ddd;
     }
     
     .image-caption {
-      padding: 6px 8px;
-      font-size: 9px;
-      font-style: italic;
-      color: #475569;
+      color: red;
+      font-weight: bold;
+      font-size: 11px;
+      margin-top: 6px;
       text-align: center;
-      background-color: #f8fafc;
-      border-top: 1px solid #e2e8f0;
     }
     
+    /* Signatures Section */
     .signatures-section {
-      margin-top: 40px;
+      margin-top: 25px;
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 15px;
@@ -520,13 +812,15 @@ export function generateDailyReportHtml(
     
     .sig-title {
       font-weight: bold;
-      color: #1e293b;
-      margin-bottom: 60px;
+      color: #000;
+      margin-bottom: 45px;
+      font-size: 10.5px;
     }
     
     .sig-name {
       font-weight: bold;
-      color: #475569;
+      color: #000;
+      font-size: 10.5px;
     }
     
     @media print {
@@ -534,19 +828,19 @@ export function generateDailyReportHtml(
         margin: 0;
         padding: 0;
       }
-      
-      .page-break {
-        page-break-before: always;
+      .page-container {
+        page-break-after: always;
+        page-break-inside: avoid;
       }
-      
+      .page-container:last-child {
+        page-break-after: avoid;
+      }
       tr {
         page-break-inside: avoid;
       }
-      
       thead {
         display: table-header-group;
       }
-      
       tfoot {
         display: table-footer-group;
       }
@@ -554,192 +848,7 @@ export function generateDailyReportHtml(
   </style>
 </head>
 <body>
-
-  <!-- Logo and Header -->
-  <div class="logo-header">
-    <div class="logo-container">
-      ${logoHtml}
-      <div class="company-info">
-        <h1>${project.contractorName || 'NHÀ THẦU CHÍNH'}</h1>
-        <p>Báo cáo Nhật ký thi công - Dự án: ${project.name}</p>
-      </div>
-    </div>
-    <div class="report-meta">
-      <div><strong>Số báo cáo:</strong> ${data.reportNo || '---'}</div>
-      <div><strong>Ngày báo cáo:</strong> ${formatDate(data.reportDate)}</div>
-      <div><strong>Trạng thái:</strong> ${data.status === 'APPROVED' ? 'Đã duyệt' : data.status === 'SENT' ? 'Đã gửi' : data.status === 'IN_REVIEW' ? 'Đang duyệt' : 'Bản nháp'}</div>
-    </div>
-  </div>
-
-  <!-- Report Title -->
-  <div class="report-title-container">
-    <h2 class="report-title">${data.title || 'BÁO CÁO NHẬT KÝ THI CÔNG HÀNG NGÀY'}</h2>
-    <p class="report-subtitle">Dự án: ${project.name}</p>
-  </div>
-
-  <!-- General Info Section -->
-  <div class="info-section">
-    <div class="info-grid">
-      <div class="info-item">
-        <span class="info-label">Dự án:</span>
-        <span class="info-value">${project.name} (${project.code})</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Địa điểm:</span>
-        <span class="info-value">${project.location || '---'}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Chủ đầu tư:</span>
-        <span class="info-value">${project.ownerName || '---'}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Tư vấn giám sát:</span>
-        <span class="info-value">${project.supervisorName || '---'}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Nhà thầu chính:</span>
-        <span class="info-value">${project.contractorName || '---'}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Người lập báo cáo:</span>
-        <span class="info-value">${data.createdBy.name} (${data.createdBy.email})</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Weather Section -->
-  <h3>A. Tình hình thời tiết</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Buổi</th>
-        <th style="width: 50px;">Nắng</th>
-        <th style="width: 50px;">Mưa</th>
-        <th style="width: 50px;">Bình thường</th>
-        <th>Gió</th>
-        <th>Sóng biển</th>
-        <th>Dòng chảy</th>
-        <th>Ghi chú</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${weatherRowsHtml}
-    </tbody>
-  </table>
-
-  <!-- Manpower Section -->
-  <h3>B. Tình hình nhân sự & thiết bị thi công</h3>
-  <h4>B1. Nhân sự thi công</h4>
-  <table>
-    <thead>
-      <tr>
-        <th rowspan="2">Hạng mục nhân sự / Tổ đội</th>
-        <th rowspan="2" style="width: 55px;">Đơn vị</th>
-        <th colspan="3">Khối lượng nhân sự</th>
-        <th colspan="4">Phân bổ chi tiết</th>
-        <th rowspan="2">Ghi chú</th>
-      </tr>
-      <tr>
-        <th style="width: 50px;">Lũy kế</th>
-        <th style="width: 50px;">Thay đổi</th>
-        <th style="width: 50px;">Hôm nay</th>
-        <th style="width: 50px;">BĐH / GS</th>
-        <th style="width: 50px;">Trực tiếp</th>
-        <th style="width: 50px;">Tăng ca</th>
-        <th style="width: 50px;">Bảo vệ</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${manpowerRowsHtml}
-    </tbody>
-  </table>
-
-  <div class="page-break"></div>
-
-  <!-- Equipment Section -->
-  <h4>B2. Thiết bị thi công chính</h4>
-  <table>
-    <thead>
-      <tr>
-        <th rowspan="2">Tên thiết bị / Chủng loại</th>
-        <th rowspan="2" style="width: 55px;">Đơn vị</th>
-        <th colspan="3">Số lượng thi công</th>
-        <th colspan="3">Trạng thái hiện trạng</th>
-        <th rowspan="2">Ghi chú</th>
-      </tr>
-      <tr>
-        <th style="width: 50px;">Lũy kế trước</th>
-        <th style="width: 50px;">Thay đổi</th>
-        <th style="width: 50px;">Hôm nay</th>
-        <th style="width: 50px;">Hoạt động</th>
-        <th style="width: 50px;">Sửa chữa</th>
-        <th style="width: 50px;">Hỏng hóc</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${equipmentRowsHtml}
-    </tbody>
-  </table>
-
-  <!-- Materials Section -->
-  <h3>C. Vật tư nhập kho trong ngày</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Tên vật tư / Chủng loại</th>
-        <th style="width: 80px;">Đơn vị</th>
-        <th style="width: 100px;">Số lượng</th>
-        <th>Ghi chú</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${materialRowsHtml}
-    </tbody>
-  </table>
-
-  <div class="page-break"></div>
-
-  <!-- Work Items Section -->
-  <h3>D. Khối lượng hạng mục thực hiện</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Tên hạng mục thi công</th>
-        <th style="width: 70px;">Mã hiệu</th>
-        <th style="width: 50px;">Đơn vị</th>
-        <th style="width: 65px;">Khối lượng<br>thiết kế</th>
-        <th style="width: 65px;">Lũy kế trước</th>
-        <th style="width: 65px;">Thực hiện<br>hôm nay</th>
-        <th style="width: 65px;">Lũy kế<br>hiện tại</th>
-        <th style="width: 55px;">% Hoàn<br>thành</th>
-        <th style="width: 80px;">Người phụ trách</th>
-        <th>Ghi chú</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${workItemsRowsHtml}
-    </tbody>
-  </table>
-
-  <!-- Images Section -->
-  ${imagesHtml}
-
-  <!-- Signatures Footer -->
-  <div class="signatures-section">
-    <div class="sig-block">
-      <div class="sig-title">ĐẠI DIỆN TƯ VẤN GIÁM SÁT</div>
-      <div class="sig-name">${project.supervisorName || '---'}</div>
-    </div>
-    <div class="sig-block">
-      <div class="sig-title">ĐẠI DIỆN NHÀ THẦU CHÍNH</div>
-      <div class="sig-name">${project.contractorName || '---'}</div>
-    </div>
-    <div class="sig-block">
-      <div class="sig-title">NGƯỜI LẬP BÁO CÁO</div>
-      <div class="sig-name">${data.createdBy.name}</div>
-    </div>
-  </div>
-
+  ${pagesHtml}
 </body>
 </html>
   `;

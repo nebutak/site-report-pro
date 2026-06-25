@@ -10,8 +10,9 @@ import {
   BorderStyle,
   AlignmentType,
   ImageRun,
+  PageBreak,
 } from 'docx';
-import { ExportReportData } from './reports-pdf.helper';
+import { ExportReportData, ExportReportImage } from './reports-pdf.helper';
 import { existsSync, readFileSync } from 'fs';
 
 // Helper date formatter
@@ -35,15 +36,6 @@ function formatNumber(numInput: any): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
-}
-
-// Helper percent formatter
-function formatPercent(numInput: any): string {
-  if (numInput === null || numInput === undefined || numInput === '')
-    return '---';
-  const num = Number(numInput);
-  if (isNaN(num)) return '---';
-  return num.toFixed(2) + '%';
 }
 
 // Helper to create a styled TextRun
@@ -93,7 +85,7 @@ function createParagraph(
 
 // Helper to create a Cell
 function createCell(
-  paragraphs: Paragraph[],
+  paragraphs: (Paragraph | Table)[],
   options: {
     widthPct?: number;
     colSpan?: number;
@@ -151,12 +143,12 @@ export async function generateDailyReportWord(
   data: ExportReportData,
 ): Promise<Buffer> {
   const tableBorders = {
-    top: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' },
-    bottom: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' },
-    left: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' },
-    right: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' },
-    insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: 'E2E8F0' },
-    insideVertical: { style: BorderStyle.SINGLE, size: 4, color: 'E2E8F0' },
+    top: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+    bottom: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+    left: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+    right: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+    insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+    insideVertical: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
   };
 
   const borderless = {
@@ -168,286 +160,478 @@ export async function generateDailyReportWord(
     insideVertical: { style: BorderStyle.NONE },
   };
 
-  // Header Table (Contractor vs Republic title)
-  const headerTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    borders: borderless,
-    rows: [
-      new TableRow({
-        children: [
-          createCell(
-            [
-              createParagraph([
-                createText(data.project.contractorName || 'NHÀ THẦU CHÍNH', {
-                  bold: true,
-                  size: 10,
-                }),
-              ]),
-              createParagraph([
-                createText(`Dự án: ${data.project.name}`, {
-                  italic: true,
-                  size: 9,
-                }),
-              ]),
-            ],
-            { widthPct: 50 },
-          ),
-          createCell(
-            [
-              createParagraph(
-                [
-                  createText('CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM', {
-                    bold: true,
-                    size: 9,
-                  }),
-                ],
-                { alignment: AlignmentType.CENTER },
-              ),
-              createParagraph(
-                [
-                  createText('Độc lập - Tự do - Hạnh phúc', {
-                    italic: true,
-                    size: 9,
-                  }),
-                ],
-                { alignment: AlignmentType.CENTER },
-              ),
-            ],
-            { widthPct: 50 },
-          ),
-        ],
-      }),
-    ],
-  });
+  // Helper to create the repeated page header block (logo, project info, title, weather & metadata)
+  const createPageHeader = (): (Table | Paragraph)[] => {
+    // 1. Logo Cell Content
+    let logoParagraph = createParagraph([
+      createText(data.project.contractorName || 'NHÀ THẦU CHÍNH', { bold: true, size: 9 }),
+    ], { alignment: AlignmentType.CENTER });
 
-  // Project Info Table
-  const projectInfoTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    borders: tableBorders,
-    rows: [
-      new TableRow({
-        children: [
-          createCell(
-            [createParagraph([createText('Dự án:', { bold: true })])],
-            { widthPct: 15, fillColor: 'F8FAFC' },
-          ),
-          createCell(
-            [
-              createParagraph([
-                createText(`${data.project.name} (${data.project.code})`),
-              ]),
-            ],
-            { widthPct: 35 },
-          ),
-          createCell(
-            [createParagraph([createText('Địa điểm:', { bold: true })])],
-            { widthPct: 15, fillColor: 'F8FAFC' },
-          ),
-          createCell(
-            [createParagraph([createText(data.project.location || '---')])],
-            {
-              widthPct: 35,
+    if (data.project.logoUrl) {
+      const logoBuffer = getImageBuffer(data.project.logoUrl);
+      if (logoBuffer) {
+        logoParagraph = createParagraph([
+          new ImageRun({
+            data: logoBuffer,
+            transformation: {
+              width: 100,
+              height: 40,
             },
-          ),
-        ],
-      }),
-      new TableRow({
-        children: [
-          createCell(
-            [createParagraph([createText('Chủ đầu tư:', { bold: true })])],
-            { widthPct: 15, fillColor: 'F8FAFC' },
-          ),
-          createCell(
-            [createParagraph([createText(data.project.ownerName || '---')])],
-            {
-              widthPct: 35,
-            },
-          ),
-          createCell(
-            [createParagraph([createText('Tư vấn giám sát:', { bold: true })])],
-            { widthPct: 15, fillColor: 'F8FAFC' },
-          ),
-          createCell(
-            [
-              createParagraph([
-                createText(data.project.supervisorName || '---'),
-              ]),
-            ],
-            { widthPct: 35 },
-          ),
-        ],
-      }),
-      new TableRow({
-        children: [
-          createCell(
-            [createParagraph([createText('Nhà thầu chính:', { bold: true })])],
-            { widthPct: 15, fillColor: 'F8FAFC' },
-          ),
-          createCell(
-            [
-              createParagraph([
-                createText(data.project.contractorName || '---'),
-              ]),
-            ],
-            { widthPct: 35 },
-          ),
-          createCell(
-            [createParagraph([createText('Người lập:', { bold: true })])],
-            { widthPct: 15, fillColor: 'F8FAFC' },
-          ),
-          createCell(
-            [
-              createParagraph([
-                createText(`${data.createdBy.name} (${data.createdBy.email})`),
-              ]),
-            ],
-            { widthPct: 35 },
-          ),
-        ],
-      }),
-    ],
-  });
+            type: getImageType(data.project.logoUrl),
+          }),
+        ], { alignment: AlignmentType.CENTER });
+      }
+    }
 
-  // Weather Table rows
-  const weatherRowsList = [
+    // 2. ISO Badge Cell Content
+    const isoParagraphs = [
+      createParagraph([createText('🌐', { size: 16, color: '0054a6' })], { alignment: AlignmentType.CENTER }),
+      createParagraph([createText('ISO', { bold: true, size: 11, color: '0054a6' })], { alignment: AlignmentType.CENTER }),
+      createParagraph([createText('9001:2015', { bold: true, size: 8, color: '0054a6' })], { alignment: AlignmentType.CENTER }),
+    ];
+
+    // 3. Header Table (3-column layout)
+    const headerTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: tableBorders,
+      rows: [
+        new TableRow({
+          children: [
+            createCell([logoParagraph], { rowSpan: 5, widthPct: 20 }),
+            createCell([createParagraph([createText('Dự án:')])], { widthPct: 15, fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(data.project.name, { bold: true })])], { widthPct: 50 }),
+            createCell(isoParagraphs, { rowSpan: 5, widthPct: 15 }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText('ĐD Chủ đầu tư:')])], { widthPct: 15, fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(data.project.ownerName || '---', { bold: true })])]),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText('Tư vấn giám sát:')])], { widthPct: 15, fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(data.project.supervisorName || '---', { bold: true })])]),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText('Nhà thầu chính:')])], { widthPct: 15, fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(data.project.contractorName || '---', { bold: true })])]),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText('Địa điểm:')])], { widthPct: 15, fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(data.project.location || '---', { bold: true })])]),
+          ],
+        }),
+      ],
+    });
+
+    const titleParagraph = createParagraph(
+      [
+        createText((data.title || 'BÁO CÁO NHẬT KÝ THI CÔNG HÀNG NGÀY').toUpperCase(), {
+          bold: true,
+          size: 13,
+          color: '000000',
+        }),
+      ],
+      { alignment: AlignmentType.CENTER, before: 120, after: 120 },
+    );
+
+    // Metadata Table
+    const metaTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: tableBorders,
+      rows: [
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText('Người báo cáo:', { size: 8 })])], { widthPct: 35, fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(data.project.defaultReporterName || data.createdBy.name, { size: 8, bold: true })])], { widthPct: 65 }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText('Người nhận:', { size: 8 })])], { widthPct: 35, fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(data.project.defaultReceiver || 'Ban lãnh đạo công ty', { size: 8, bold: true })])], { widthPct: 65 }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText('Cc:', { size: 8 })])], { widthPct: 35, fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(data.project.defaultCc || 'Ban điều hành dự án', { size: 8, bold: true })])], { widthPct: 65 }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText('Báo cáo số:', { size: 8 })])], { widthPct: 35, fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(data.reportNo || '---', { size: 8, bold: true })])], { widthPct: 65 }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText('Báo cáo ngày:', { size: 8 })])], { widthPct: 35, fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(formatDate(data.reportDate), { size: 8, bold: true, color: 'FF0000' })])], { widthPct: 65 }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText('Ngày phát hành:', { size: 8 })])], { widthPct: 35, fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(formatDate(data.issueDate || data.reportDate), { size: 8, bold: true, color: 'FF0000' })])], { widthPct: 65 }),
+          ],
+        }),
+      ],
+    });
+
+    const getPeriodWeather = (periodName: string) => {
+      const keys = 
+        periodName === 'Sáng' || periodName === 'MORNING' ? ['sáng', 'morning'] :
+        periodName === 'Chiều' || periodName === 'AFTERNOON' ? ['chiều', 'afternoon'] :
+        periodName === 'Tối' || periodName === 'EVENING' ? ['tối', 'evening'] : [periodName.toLowerCase().trim()];
+      const row = data.weatherRows.find((w) => w.period && keys.includes(w.period.toLowerCase().trim()));
+      return row || {
+        isSunny: false,
+        isRainy: false,
+        isNormal: false,
+        wind: '',
+        wave: '',
+        swell: '',
+      };
+    };
+
+    const morning = getPeriodWeather('Sáng');
+    const afternoon = getPeriodWeather('Chiều');
+    const evening = getPeriodWeather('Tối');
+
+    const weatherTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: tableBorders,
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          children: [
+            createCell([createParagraph([createText('Thời tiết', { bold: true, size: 8 })], { alignment: AlignmentType.CENTER })], { widthPct: 15, fillColor: 'F1F5F9' }),
+            createCell([createParagraph([createText('Nắng', { bold: true, size: 8 })], { alignment: AlignmentType.CENTER })], { widthPct: 10, fillColor: 'F1F5F9' }),
+            createCell([createParagraph([createText('Mưa', { bold: true, size: 8 })], { alignment: AlignmentType.CENTER })], { widthPct: 10, fillColor: 'F1F5F9' }),
+            createCell([createParagraph([createText('B.Thường', { bold: true, size: 8 })], { alignment: AlignmentType.CENTER })], { widthPct: 12, fillColor: 'F1F5F9' }),
+            createCell([createParagraph([createText('Gió (cấp)', { bold: true, size: 8 })], { alignment: AlignmentType.CENTER })], { widthPct: 18, fillColor: 'F1F5F9' }),
+            createCell([createParagraph([createText('Sóng (m)', { bold: true, size: 8 })], { alignment: AlignmentType.CENTER })], { widthPct: 15, fillColor: 'F1F5F9' }),
+            createCell([createParagraph([createText('Sóng lừng', { bold: true, size: 8 })], { alignment: AlignmentType.CENTER })], { widthPct: 20, fillColor: 'F1F5F9' }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText('Sáng', { bold: true, size: 8 })], { alignment: AlignmentType.CENTER })], { fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(morning.isSunny ? '☑' : '☐', { size: 9 })], { alignment: AlignmentType.CENTER })]),
+            createCell([createParagraph([createText(morning.isRainy ? '☑' : '☐', { size: 9 })], { alignment: AlignmentType.CENTER })]),
+            createCell([createParagraph([createText(morning.isNormal ? '☑' : '☐', { size: 9 })], { alignment: AlignmentType.CENTER })]),
+            createCell([createParagraph([createText(morning.wind || '', { size: 8 })])]),
+            createCell([createParagraph([createText(morning.wave || '', { size: 8 })])]),
+            createCell([createParagraph([createText(morning.swell || '', { size: 8 })])]),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText('Chiều', { bold: true, size: 8 })], { alignment: AlignmentType.CENTER })], { fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(afternoon.isSunny ? '☑' : '☐', { size: 9 })], { alignment: AlignmentType.CENTER })]),
+            createCell([createParagraph([createText(afternoon.isRainy ? '☑' : '☐', { size: 9 })], { alignment: AlignmentType.CENTER })]),
+            createCell([createParagraph([createText(afternoon.isNormal ? '☑' : '☐', { size: 9 })], { alignment: AlignmentType.CENTER })]),
+            createCell([createParagraph([createText(afternoon.wind || '', { size: 8 })])]),
+            createCell([createParagraph([createText(afternoon.wave || '', { size: 8 })])]),
+            createCell([createParagraph([createText(afternoon.swell || '', { size: 8 })])]),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText('Tối', { bold: true, size: 8 })], { alignment: AlignmentType.CENTER })], { fillColor: 'F8FAFC' }),
+            createCell([createParagraph([createText(evening.isSunny ? '☑' : '☐', { size: 9 })], { alignment: AlignmentType.CENTER })]),
+            createCell([createParagraph([createText(evening.isRainy ? '☑' : '☐', { size: 9 })], { alignment: AlignmentType.CENTER })]),
+            createCell([createParagraph([createText(evening.isNormal ? '☑' : '☐', { size: 9 })], { alignment: AlignmentType.CENTER })]),
+            createCell([createParagraph([createText(evening.wind || '', { size: 8 })])]),
+            createCell([createParagraph([createText(evening.wave || '', { size: 8 })])]),
+            createCell([createParagraph([createText(evening.swell || '', { size: 8 })])]),
+          ],
+        }),
+      ],
+    });
+
+    const combinedMetaWeatherTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: borderless,
+      rows: [
+        new TableRow({
+          children: [
+            createCell([metaTable], { widthPct: 40 }),
+            createCell([], { widthPct: 2 }), // spacer
+            createCell([weatherTable], { widthPct: 58 }),
+          ],
+        }),
+      ],
+    });
+
+    return [
+      headerTable,
+      new Paragraph({ spacing: { after: 150 } }),
+      titleParagraph,
+      combinedMetaWeatherTable,
+      new Paragraph({ spacing: { after: 180 } }),
+    ];
+  };
+
+  // Section I: Equipment and Materials side-by-side
+  const maxEqMatRows = Math.max(data.equipmentRows.length, data.materialRows.length);
+  const eqMatRows = [];
+  for (let i = 0; i < maxEqMatRows; i++) {
+    eqMatRows.push({
+      eq: data.equipmentRows[i] || null,
+      mat: data.materialRows[i] || null,
+    });
+  }
+
+  const eqMatTableRows = [
     new TableRow({
       tableHeader: true,
       children: [
-        createCell(
-          [
-            createParagraph([createText('Buổi', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 12, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Nắng', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Mưa', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Bình thường', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 12, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Gió', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 12, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Sóng biển', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 12, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Dòng chảy', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 12, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Ghi chú', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 24, fillColor: 'F1F5F9' },
-        ),
+        createCell([createParagraph([createText('I', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 6, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Các thiết bị chính trên công trường', { bold: true })], { alignment: AlignmentType.CENTER })], { colSpan: 2, widthPct: 54, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Vật liệu chính nhập vào công trường', { bold: true })], { alignment: AlignmentType.CENTER })], { colSpan: 2, widthPct: 40, fillColor: 'F1F5F9' }),
+      ],
+    }),
+    new TableRow({
+      tableHeader: true,
+      children: [
+        createCell([createParagraph([createText('TT', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 6, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Tên thiết bị', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 39, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Số lượng', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 15, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Tên vật tư', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 25, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Khối lượng', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 15, fillColor: 'F1F5F9' }),
       ],
     }),
   ];
 
-  if (data.weatherRows.length > 0) {
-    for (const w of data.weatherRows) {
-      const pText =
-        w.period === 'MORNING'
-          ? 'Buổi Sáng'
-          : w.period === 'AFTERNOON'
-            ? 'Buổi Chiều'
-            : w.period === 'EVENING'
-              ? 'Buổi Tối'
-              : w.period;
-      weatherRowsList.push(
+  if (eqMatRows.length > 0) {
+    eqMatRows.forEach((row, idx) => {
+      const eqParagraphs: Paragraph[] = [];
+      if (row.eq) {
+        const lines = (row.eq.name || '').split('\n');
+        lines.forEach(line => eqParagraphs.push(createParagraph([createText(line)])));
+      } else {
+        eqParagraphs.push(createParagraph([]));
+      }
+
+      const matParagraphs: Paragraph[] = [];
+      if (row.mat) {
+        const lines = (row.mat.name || '').split('\n');
+        lines.forEach(line => matParagraphs.push(createParagraph([createText(line)])));
+      } else {
+        matParagraphs.push(createParagraph([]));
+      }
+
+      eqMatTableRows.push(
         new TableRow({
           children: [
-            createCell([createParagraph([createText(pText, { bold: true })])], {
-              widthPct: 12,
-            }),
+            createCell([createParagraph([createText(row.eq ? String(idx + 1) : '')], { alignment: AlignmentType.CENTER })], { widthPct: 6 }),
+            createCell(eqParagraphs, { widthPct: 39 }),
             createCell(
-              [
-                createParagraph([createText(w.isSunny ? '✓' : '')], {
-                  alignment: AlignmentType.CENTER,
-                }),
-              ],
-              { widthPct: 8 },
+              row.eq
+                ? [
+                    createParagraph(
+                      [
+                        createText(
+                          `${formatNumber(row.eq.todayQuantity)} ${row.eq.unit || 'chiếc'}`,
+                          { bold: true },
+                        ),
+                      ],
+                      { alignment: AlignmentType.RIGHT },
+                    ),
+                  ]
+                : [createParagraph([])],
+              { widthPct: 15 },
             ),
+            createCell(matParagraphs, { widthPct: 25 }),
             createCell(
-              [
-                createParagraph([createText(w.isRainy ? '✓' : '')], {
-                  alignment: AlignmentType.CENTER,
-                }),
-              ],
-              { widthPct: 8 },
+              row.mat
+                ? [
+                    createParagraph(
+                      [
+                        createText(
+                          `${formatNumber(row.mat.quantity)} ${row.mat.unit || 'Tấn'}`,
+                          { bold: true },
+                        ),
+                      ],
+                      { alignment: AlignmentType.RIGHT },
+                    ),
+                  ]
+                : [createParagraph([])],
+              { widthPct: 15 },
             ),
-            createCell(
-              [
-                createParagraph([createText(w.isNormal ? '✓' : '')], {
-                  alignment: AlignmentType.CENTER,
-                }),
-              ],
-              { widthPct: 12 },
-            ),
-            createCell([createParagraph([createText(w.wind || '')])], {
-              widthPct: 12,
-            }),
-            createCell([createParagraph([createText(w.wave || '')])], {
-              widthPct: 12,
-            }),
-            createCell([createParagraph([createText(w.swell || '')])], {
-              widthPct: 12,
-            }),
-            createCell([createParagraph([createText(w.note || '')])], {
-              widthPct: 24,
-            }),
           ],
         }),
       );
-    }
+    });
   } else {
-    weatherRowsList.push(
+    eqMatTableRows.push(
       new TableRow({
         children: [
           createCell(
             [
               createParagraph(
-                [createText('Không có dữ liệu thời tiết', { italic: true })],
-                {
-                  alignment: AlignmentType.CENTER,
-                },
+                [createText('Không có dữ liệu thiết bị và vật tư', { italic: true })],
+                { alignment: AlignmentType.CENTER },
+              ),
+            ],
+            { colSpan: 5 },
+          ),
+        ],
+      }),
+    );
+  }
+
+  const eqMatTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: tableBorders,
+    rows: eqMatTableRows,
+  });
+
+  // Section II: Manpower
+  let totalManager = 0;
+  let totalStaff = 0;
+  let totalOvertime = 0;
+  let totalSecurity = 0;
+
+  const manpowerTableRows = [
+    new TableRow({
+      tableHeader: true,
+      children: [
+        createCell([createParagraph([createText('II', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 6, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Nhân sự trên công trường', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 34, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Quản lý', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 10, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Nhân sự', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 10, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Nhân sự tăng ca', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 12, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Bảo vệ', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 10, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Ghi chú', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 18, fillColor: 'F1F5F9' }),
+      ],
+    }),
+  ];
+
+  if (data.manpowerRows.length > 0) {
+    data.manpowerRows.forEach((m, idx) => {
+      totalManager += Number(m.managerQuantity || 0);
+      totalStaff += Number(m.staffQuantity || 0);
+      totalOvertime += Number(m.overtimeQuantity || 0);
+      totalSecurity += Number(m.securityQuantity || 0);
+
+      manpowerTableRows.push(
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText(String(idx + 1))], { alignment: AlignmentType.CENTER })], { widthPct: 6 }),
+            createCell([createParagraph([createText(m.name)])], { widthPct: 34 }),
+            createCell([createParagraph([createText(m.managerQuantity ? formatNumber(m.managerQuantity) : '')], { alignment: AlignmentType.RIGHT })], { widthPct: 10 }),
+            createCell([createParagraph([createText(m.staffQuantity ? formatNumber(m.staffQuantity) : '')], { alignment: AlignmentType.RIGHT })], { widthPct: 10 }),
+            createCell([createParagraph([createText(m.overtimeQuantity ? formatNumber(m.overtimeQuantity) : '')], { alignment: AlignmentType.RIGHT })], { widthPct: 12 }),
+            createCell([createParagraph([createText(m.securityQuantity ? formatNumber(m.securityQuantity) : '')], { alignment: AlignmentType.RIGHT })], { widthPct: 10 }),
+            createCell([createParagraph([createText(m.note || '')])], { widthPct: 18 }),
+          ],
+        }),
+      );
+    });
+
+    manpowerTableRows.push(
+      new TableRow({
+        children: [
+          createCell([createParagraph([createText('Tổng cộng nhân sự', { bold: true })], { alignment: AlignmentType.CENTER })], { colSpan: 2, widthPct: 40, fillColor: 'F1F5F9' }),
+          createCell([createParagraph([createText(totalManager ? formatNumber(totalManager) : '', { bold: true })], { alignment: AlignmentType.RIGHT })], { widthPct: 10, fillColor: 'F1F5F9' }),
+          createCell([createParagraph([createText(totalStaff ? formatNumber(totalStaff) : '', { bold: true })], { alignment: AlignmentType.RIGHT })], { widthPct: 10, fillColor: 'F1F5F9' }),
+          createCell([createParagraph([createText(totalOvertime ? formatNumber(totalOvertime) : '', { bold: true })], { alignment: AlignmentType.RIGHT })], { widthPct: 12, fillColor: 'F1F5F9' }),
+          createCell([createParagraph([createText(totalSecurity ? formatNumber(totalSecurity) : '', { bold: true })], { alignment: AlignmentType.RIGHT })], { widthPct: 10, fillColor: 'F1F5F9' }),
+          createCell([createParagraph([])], { widthPct: 18, fillColor: 'F1F5F9' }),
+        ],
+      }),
+    );
+  } else {
+    manpowerTableRows.push(
+      new TableRow({
+        children: [
+          createCell(
+            [
+              createParagraph(
+                [createText('Không có dữ liệu nhân sự', { italic: true })],
+                { alignment: AlignmentType.CENTER },
+              ),
+            ],
+            { colSpan: 7 },
+          ),
+        ],
+      }),
+    );
+  }
+
+  const manpowerTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: tableBorders,
+    rows: manpowerTableRows,
+  });
+
+  // Section III: Work Items
+  const workItemTableRows = [
+    new TableRow({
+      tableHeader: true,
+      children: [
+        createCell([createParagraph([createText('III', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 6, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Công việc thực hiện trong ngày', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 39, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Đơn vị', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 8, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('% Đánh giá', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 12, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Thực hiện', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 10, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Hôm nay', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 10, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('Luỹ kế', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 10, fillColor: 'F1F5F9' }),
+        createCell([createParagraph([createText('P. Trách', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 15, fillColor: 'F1F5F9' }),
+      ],
+    }),
+  ];
+
+  if (data.workItems.length > 0) {
+    let groupIndex = 0;
+    data.workItems.forEach((item) => {
+      let ttVal = '';
+      if (item.level === 0) {
+        groupIndex++;
+        ttVal = String(groupIndex);
+      } else if (item.level === 1) {
+        ttVal = '-';
+      }
+
+      const isGroup = item.isGroup;
+      const bgFill = isGroup ? 'FAFAFA' : undefined;
+
+      const indentPrefix = '\u00A0'.repeat(item.level * 4);
+      const itemName = indentPrefix + item.name;
+
+      workItemTableRows.push(
+        new TableRow({
+          children: [
+            createCell([createParagraph([createText(ttVal, { bold: isGroup })], { alignment: AlignmentType.CENTER })], { widthPct: 6, fillColor: bgFill }),
+            createCell([createParagraph([createText(itemName, { bold: isGroup })])], { widthPct: 39, fillColor: bgFill }),
+            createCell([createParagraph([createText(item.unit || '---')], { alignment: AlignmentType.CENTER })], { widthPct: 8, fillColor: bgFill }),
+            createCell([createParagraph([createText(formatNumber(item.designQuantity))], { alignment: AlignmentType.RIGHT })], { widthPct: 12, fillColor: bgFill }),
+            createCell([createParagraph([createText(formatNumber(item.previousAccumulatedQuantity))], { alignment: AlignmentType.RIGHT })], { widthPct: 10, fillColor: bgFill }),
+            createCell([createParagraph([createText(formatNumber(item.todayQuantity))], { alignment: AlignmentType.RIGHT })], { widthPct: 10, fillColor: bgFill }),
+            createCell([createParagraph([createText(formatNumber(item.currentAccumulatedQuantity), { bold: true })], { alignment: AlignmentType.RIGHT })], { widthPct: 10, fillColor: bgFill }),
+            createCell([createParagraph([createText(item.personInCharge || '')])], { widthPct: 15, fillColor: bgFill }),
+          ],
+        }),
+      );
+    });
+  } else {
+    workItemTableRows.push(
+      new TableRow({
+        children: [
+          createCell(
+            [
+              createParagraph(
+                [createText('Không có dữ liệu hạng mục thi công', { italic: true })],
+                { alignment: AlignmentType.CENTER },
               ),
             ],
             { colSpan: 8 },
@@ -457,838 +641,202 @@ export async function generateDailyReportWord(
     );
   }
 
-  // Manpower Table rows
-  const manpowerRowsList = [
-    new TableRow({
-      tableHeader: true,
-      children: [
-        createCell(
-          [
-            createParagraph(
-              [createText('Hạng mục nhân sự / Tổ đội', { bold: true })],
-              {
-                alignment: AlignmentType.CENTER,
-              },
-            ),
-          ],
-          { rowSpan: 2, widthPct: 20, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Đơn vị', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { rowSpan: 2, widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph(
-              [createText('Khối lượng nhân sự', { bold: true })],
-              {
-                alignment: AlignmentType.CENTER,
-              },
-            ),
-          ],
-          { colSpan: 3, widthPct: 24, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Phân bổ chi tiết', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { colSpan: 4, widthPct: 32, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Ghi chú', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { rowSpan: 2, widthPct: 16, fillColor: 'F1F5F9' },
-        ),
-      ],
-    }),
-    new TableRow({
-      tableHeader: true,
-      children: [
-        createCell(
-          [
-            createParagraph([createText('Lũy kế trước', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Thay đổi', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Hôm nay', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('BĐH / GS', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Trực tiếp', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Tăng ca', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Bảo vệ', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-      ],
-    }),
-  ];
+  const workItemTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: tableBorders,
+    rows: workItemTableRows,
+  });
 
-  if (data.manpowerRows.length > 0) {
-    for (const m of data.manpowerRows) {
-      const mismatch =
-        m.previousQuantity !== null &&
-        m.changeQuantity !== null &&
-        m.todayQuantity !== null &&
-        Number(m.previousQuantity) + Number(m.changeQuantity) !==
-          Number(m.todayQuantity);
-
-      const rowFill = mismatch ? 'FFF9E6' : undefined;
-      const changeSign =
-        m.changeQuantity !== null && Number(m.changeQuantity) >= 0 ? '+' : '';
-
-      manpowerRowsList.push(
-        new TableRow({
-          children: [
-            createCell([createParagraph([createText(m.name)])], {
-              fillColor: rowFill,
-            }),
-            createCell(
-              [
-                createParagraph([createText(m.unit || 'Người')], {
-                  alignment: AlignmentType.CENTER,
-                }),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [createText(formatNumber(m.previousQuantity))],
-                  {
-                    alignment: AlignmentType.RIGHT,
-                  },
-                ),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [createText(changeSign + formatNumber(m.changeQuantity))],
-                  { alignment: AlignmentType.RIGHT },
-                ),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [createText(formatNumber(m.todayQuantity), { bold: true })],
-                  { alignment: AlignmentType.RIGHT },
-                ),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell(
-              [
-                createParagraph([createText(formatNumber(m.managerQuantity))], {
-                  alignment: AlignmentType.RIGHT,
-                }),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell(
-              [
-                createParagraph([createText(formatNumber(m.staffQuantity))], {
-                  alignment: AlignmentType.RIGHT,
-                }),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [createText(formatNumber(m.overtimeQuantity))],
-                  {
-                    alignment: AlignmentType.RIGHT,
-                  },
-                ),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [createText(formatNumber(m.securityQuantity))],
-                  {
-                    alignment: AlignmentType.RIGHT,
-                  },
-                ),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell([createParagraph([createText(m.note || '')])], {
-              fillColor: rowFill,
-            }),
-          ],
-        }),
-      );
-    }
-  } else {
-    manpowerRowsList.push(
-      new TableRow({
-        children: [
-          createCell(
-            [
-              createParagraph(
-                [createText('Không có dữ liệu nhân sự', { italic: true })],
-                {
-                  alignment: AlignmentType.CENTER,
-                },
-              ),
-            ],
-            { colSpan: 10 },
-          ),
-        ],
-      }),
-    );
-  }
-
-  // Equipment Table rows
-  const equipmentRowsList = [
-    new TableRow({
-      tableHeader: true,
-      children: [
-        createCell(
-          [
-            createParagraph(
-              [createText('Tên thiết bị / Chủng loại', { bold: true })],
-              {
-                alignment: AlignmentType.CENTER,
-              },
-            ),
-          ],
-          { rowSpan: 2, widthPct: 22, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Đơn vị', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { rowSpan: 2, widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Số lượng thi công', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { colSpan: 3, widthPct: 24, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph(
-              [createText('Trạng thái hiện trạng', { bold: true })],
-              {
-                alignment: AlignmentType.CENTER,
-              },
-            ),
-          ],
-          { colSpan: 3, widthPct: 24, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Ghi chú', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { rowSpan: 2, widthPct: 22, fillColor: 'F1F5F9' },
-        ),
-      ],
-    }),
-    new TableRow({
-      tableHeader: true,
-      children: [
-        createCell(
-          [
-            createParagraph([createText('Lũy kế trước', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Thay đổi', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Hôm nay', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Hoạt động', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Sửa chữa', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Hỏng hóc', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-      ],
-    }),
-  ];
-
-  if (data.equipmentRows.length > 0) {
-    for (const e of data.equipmentRows) {
-      const mismatchState =
-        e.normalQuantity !== null &&
-        e.repairingQuantity !== null &&
-        e.brokenQuantity !== null &&
-        e.todayQuantity !== null &&
-        Number(e.normalQuantity) +
-          Number(e.repairingQuantity) +
-          Number(e.brokenQuantity) !==
-          Number(e.todayQuantity);
-
-      const rowFill = mismatchState ? 'FFF9E6' : undefined;
-      const changeSign =
-        e.changeQuantity !== null && Number(e.changeQuantity) >= 0 ? '+' : '';
-
-      equipmentRowsList.push(
-        new TableRow({
-          children: [
-            createCell([createParagraph([createText(e.name)])], {
-              fillColor: rowFill,
-            }),
-            createCell(
-              [
-                createParagraph([createText(e.unit || 'Chiếc')], {
-                  alignment: AlignmentType.CENTER,
-                }),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [createText(formatNumber(e.previousQuantity))],
-                  {
-                    alignment: AlignmentType.RIGHT,
-                  },
-                ),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [createText(changeSign + formatNumber(e.changeQuantity))],
-                  { alignment: AlignmentType.RIGHT },
-                ),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [createText(formatNumber(e.todayQuantity), { bold: true })],
-                  { alignment: AlignmentType.RIGHT },
-                ),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell(
-              [
-                createParagraph([createText(formatNumber(e.normalQuantity))], {
-                  alignment: AlignmentType.RIGHT,
-                }),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [createText(formatNumber(e.repairingQuantity))],
-                  {
-                    alignment: AlignmentType.RIGHT,
-                  },
-                ),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell(
-              [
-                createParagraph([createText(formatNumber(e.brokenQuantity))], {
-                  alignment: AlignmentType.RIGHT,
-                }),
-              ],
-              { fillColor: rowFill },
-            ),
-            createCell([createParagraph([createText(e.note || '')])], {
-              fillColor: rowFill,
-            }),
-          ],
-        }),
-      );
-    }
-  } else {
-    equipmentRowsList.push(
-      new TableRow({
-        children: [
-          createCell(
-            [
-              createParagraph(
-                [
-                  createText('Không có dữ liệu thiết bị thi công', {
-                    italic: true,
-                  }),
-                ],
-                {
-                  alignment: AlignmentType.CENTER,
-                },
-              ),
-            ],
-            { colSpan: 9 },
-          ),
-        ],
-      }),
-    );
-  }
-
-  // Materials Table
-  const materialRowsList = [
-    new TableRow({
-      tableHeader: true,
-      children: [
-        createCell(
-          [
-            createParagraph(
-              [createText('Tên vật tư / Chủng loại', { bold: true })],
-              {
-                alignment: AlignmentType.CENTER,
-              },
-            ),
-          ],
-          { widthPct: 40, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Đơn vị', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 15, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph(
-              [createText('Số lượng nhập trong ngày', { bold: true })],
-              {
-                alignment: AlignmentType.CENTER,
-              },
-            ),
-          ],
-          { widthPct: 20, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Ghi chú', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 25, fillColor: 'F1F5F9' },
-        ),
-      ],
-    }),
-  ];
-
-  if (data.materialRows.length > 0) {
-    for (const m of data.materialRows) {
-      materialRowsList.push(
-        new TableRow({
-          children: [
-            createCell([createParagraph([createText(m.name)])], {
-              widthPct: 40,
-            }),
-            createCell(
-              [
-                createParagraph([createText(m.unit || 'Tấn')], {
-                  alignment: AlignmentType.CENTER,
-                }),
-              ],
-              { widthPct: 15 },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [createText(formatNumber(m.quantity), { bold: true })],
-                  {
-                    alignment: AlignmentType.RIGHT,
-                  },
-                ),
-              ],
-              { widthPct: 20 },
-            ),
-            createCell([createParagraph([createText(m.note || '')])], {
-              widthPct: 25,
-            }),
-          ],
-        }),
-      );
-    }
-  } else {
-    materialRowsList.push(
-      new TableRow({
-        children: [
-          createCell(
-            [
-              createParagraph(
-                [createText('Không có dữ liệu vật tư', { italic: true })],
-                {
-                  alignment: AlignmentType.CENTER,
-                },
-              ),
-            ],
-            { colSpan: 4 },
-          ),
-        ],
-      }),
-    );
-  }
-
-  // Work Items Table
-  const workItemRowsList = [
-    new TableRow({
-      tableHeader: true,
-      children: [
-        createCell(
-          [
-            createParagraph(
-              [createText('Tên hạng mục thi công', { bold: true })],
-              {
-                alignment: AlignmentType.CENTER,
-              },
-            ),
-          ],
-          { widthPct: 26, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Mã hiệu', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Đơn vị', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 6, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('KL thiết kế', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 9, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Lũy kế trước', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 9, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('KL hôm nay', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 9, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Lũy kế hiện tại', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 9, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('% Hoàn thành', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Người phụ trách', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-        createCell(
-          [
-            createParagraph([createText('Ghi chú', { bold: true })], {
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-          { widthPct: 8, fillColor: 'F1F5F9' },
-        ),
-      ],
-    }),
-  ];
-
-  if (data.workItems.length > 0) {
-    for (const item of data.workItems) {
-      const isGroup = item.isGroup;
-      const bgFill = isGroup ? 'FAFAFA' : undefined;
-
-      const indentPrefix =
-        '\u00A0'.repeat(item.level * 4) + (isGroup ? '📁 ' : '');
-      const itemName = indentPrefix + item.name;
-
-      workItemRowsList.push(
-        new TableRow({
-          children: [
-            createCell(
-              [createParagraph([createText(itemName, { bold: isGroup })])],
-              {
-                fillColor: bgFill,
-              },
-            ),
-            createCell(
-              [
-                createParagraph([createText(item.code || '')], {
-                  alignment: AlignmentType.CENTER,
-                }),
-              ],
-              { fillColor: bgFill },
-            ),
-            createCell(
-              [
-                createParagraph([createText(item.unit || '---')], {
-                  alignment: AlignmentType.CENTER,
-                }),
-              ],
-              { fillColor: bgFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [createText(formatNumber(item.designQuantity))],
-                  {
-                    alignment: AlignmentType.RIGHT,
-                  },
-                ),
-              ],
-              { fillColor: bgFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [createText(formatNumber(item.previousAccumulatedQuantity))],
-                  {
-                    alignment: AlignmentType.RIGHT,
-                  },
-                ),
-              ],
-              { fillColor: bgFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [createText(formatNumber(item.todayQuantity))],
-                  {
-                    alignment: AlignmentType.RIGHT,
-                  },
-                ),
-              ],
-              { fillColor: bgFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [
-                    createText(formatNumber(item.currentAccumulatedQuantity), {
-                      bold: true,
-                    }),
-                  ],
-                  { alignment: AlignmentType.RIGHT },
-                ),
-              ],
-              { fillColor: bgFill },
-            ),
-            createCell(
-              [
-                createParagraph(
-                  [
-                    createText(formatPercent(item.completionPercent), {
-                      bold: true,
-                    }),
-                  ],
-                  { alignment: AlignmentType.RIGHT },
-                ),
-              ],
-              { fillColor: bgFill },
-            ),
-            createCell(
-              [createParagraph([createText(item.personInCharge || '')])],
-              {
-                fillColor: bgFill,
-              },
-            ),
-            createCell([createParagraph([createText(item.note || '')])], {
-              fillColor: bgFill,
-            }),
-          ],
-        }),
-      );
-    }
-  } else {
-    workItemRowsList.push(
-      new TableRow({
-        children: [
-          createCell(
-            [
-              createParagraph(
-                [
-                  createText('Không có dữ liệu hạng mục thi công', {
-                    italic: true,
-                  }),
-                ],
-                {
-                  alignment: AlignmentType.CENTER,
-                },
-              ),
-            ],
-            { colSpan: 10 },
-          ),
-        ],
-      }),
-    );
-  }
-
-  // Construction Images
-  const imageElements: Paragraph[] = [];
+  // Split images into pages of 3 images
+  const imagePagesList: ExportReportImage[][] = [];
   if (data.images && data.images.length > 0) {
-    imageElements.push(
-      createParagraph(
-        [
-          createText('E. Hình ảnh thi công', {
-            bold: true,
-            size: 11,
-            color: '1E3A8A',
-          }),
+    for (let i = 0; i < data.images.length; i += 3) {
+      imagePagesList.push(data.images.slice(i, i + 3));
+    }
+  }
+
+  // Helper function to create image grid content for Word
+  const createImagePageElements = (pageImages: ExportReportImage[], pIdx: number): Table => {
+    const tableRows = [
+      new TableRow({
+        tableHeader: true,
+        children: [
+          createCell([createParagraph([createText('IV', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 6, fillColor: 'F1F5F9' }),
+          createCell([createParagraph([createText('HÌNH ẢNH THI CÔNG', { bold: true })])], { colSpan: 2, widthPct: 94, fillColor: 'F1F5F9' }),
         ],
-        { before: 240, after: 120 },
-      ),
-    );
-    for (const img of data.images) {
-      const buffer = getImageBuffer(img.fileUrl);
-      if (buffer) {
-        imageElements.push(
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new ImageRun({
-                data: buffer,
-                transformation: {
-                  width: 360,
-                  height: 240,
-                },
-                type: getImageType(img.fileUrl),
-              }),
-            ],
-          }),
+      })
+    ];
+
+    if (pageImages.length === 3) {
+      const img1 = pageImages[0];
+      const img2 = pageImages[1];
+      const img3 = pageImages[2];
+      const buf1 = getImageBuffer(img1.fileUrl);
+      const buf2 = getImageBuffer(img2.fileUrl);
+      const buf3 = getImageBuffer(img3.fileUrl);
+
+      const makeImageRun = (buf: Buffer, url: string, isFull: boolean) => {
+        return new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            new ImageRun({
+              data: buf,
+              transformation: {
+                width: isFull ? 360 : 210,
+                height: isFull ? 220 : 140,
+              },
+              type: getImageType(url),
+            }),
+          ],
+        });
+      };
+
+      const makeCaptionParagraph = (captionText: string) => {
+        return createParagraph(
+          [createText(captionText, { italic: true, size: 8, color: 'FF0000', bold: true })],
+          { alignment: AlignmentType.CENTER, before: 40, after: 40 }
         );
-        imageElements.push(
-          createParagraph(
-            [
-              createText(`Hình: ${img.caption || 'Thi công'}`, {
-                italic: true,
-                size: 9,
-              }),
+      };
+
+      if (pIdx % 2 === 0) {
+        // 2 at top, 1 at bottom
+        // Row 1: empty 6%, image 1 (47%), image 2 (47%)
+        const cell1Children: (Paragraph | Table)[] = buf1 ? [makeImageRun(buf1, img1.fileUrl, false), makeCaptionParagraph(img1.caption || 'Thi công')] : [createParagraph([])];
+        const cell2Children: (Paragraph | Table)[] = buf2 ? [makeImageRun(buf2, img2.fileUrl, false), makeCaptionParagraph(img2.caption || 'Thi công')] : [createParagraph([])];
+
+        tableRows.push(
+          new TableRow({
+            children: [
+              createCell([createParagraph([])], { widthPct: 6 }), // Col 1
+              createCell(cell1Children, { widthPct: 47, verticalAlign: 'center' }), // Col 2
+              createCell(cell2Children, { widthPct: 47, verticalAlign: 'center' }), // Col 3
             ],
-            { alignment: AlignmentType.CENTER, before: 60, after: 180 },
-          ),
+          })
+        );
+
+        // Row 2: empty 6%, image 3 (94% colspan 2)
+        const cell3Children: (Paragraph | Table)[] = buf3 ? [makeImageRun(buf3, img3.fileUrl, true), makeCaptionParagraph(img3.caption || 'Thi công')] : [createParagraph([])];
+        tableRows.push(
+          new TableRow({
+            children: [
+              createCell([createParagraph([])], { widthPct: 6 }), // Col 1
+              createCell(cell3Children, { colSpan: 2, widthPct: 94, verticalAlign: 'center' }), // Col 2 & 3
+            ],
+          })
+        );
+      } else {
+        // 1 at top, 2 at bottom
+        // Row 1: empty 6%, image 1 (94% colspan 2)
+        const cell1Children: (Paragraph | Table)[] = buf1 ? [makeImageRun(buf1, img1.fileUrl, true), makeCaptionParagraph(img1.caption || 'Thi công')] : [createParagraph([])];
+        tableRows.push(
+          new TableRow({
+            children: [
+              createCell([createParagraph([])], { widthPct: 6 }), // Col 1
+              createCell(cell1Children, { colSpan: 2, widthPct: 94, verticalAlign: 'center' }), // Col 2 & 3
+            ],
+          })
+        );
+
+        // Row 2: empty 6%, image 2 (47%), image 3 (47%)
+        const cell2Children: (Paragraph | Table)[] = buf2 ? [makeImageRun(buf2, img2.fileUrl, false), makeCaptionParagraph(img2.caption || 'Thi công')] : [createParagraph([])];
+        const cell3Children: (Paragraph | Table)[] = buf3 ? [makeImageRun(buf3, img3.fileUrl, false), makeCaptionParagraph(img3.caption || 'Thi công')] : [createParagraph([])];
+
+        tableRows.push(
+          new TableRow({
+            children: [
+              createCell([createParagraph([])], { widthPct: 6 }), // Col 1
+              createCell(cell2Children, { widthPct: 47, verticalAlign: 'center' }), // Col 2
+              createCell(cell3Children, { widthPct: 47, verticalAlign: 'center' }), // Col 3
+            ],
+          })
         );
       }
+    } else if (pageImages.length === 2) {
+      const img1 = pageImages[0];
+      const img2 = pageImages[1];
+      const buf1 = getImageBuffer(img1.fileUrl);
+      const buf2 = getImageBuffer(img2.fileUrl);
+
+      const makeImageRun = (buf: Buffer, url: string) => {
+        return new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            new ImageRun({
+              data: buf,
+              transformation: {
+                width: 210,
+                height: 140,
+              },
+              type: getImageType(url),
+            }),
+          ],
+        });
+      };
+
+      const makeCaptionParagraph = (captionText: string) => {
+        return createParagraph(
+          [createText(captionText, { italic: true, size: 8, color: 'FF0000', bold: true })],
+          { alignment: AlignmentType.CENTER, before: 40, after: 40 }
+        );
+      };
+
+      const cell1Children: (Paragraph | Table)[] = buf1 ? [makeImageRun(buf1, img1.fileUrl), makeCaptionParagraph(img1.caption || 'Thi công')] : [createParagraph([])];
+      const cell2Children: (Paragraph | Table)[] = buf2 ? [makeImageRun(buf2, img2.fileUrl), makeCaptionParagraph(img2.caption || 'Thi công')] : [createParagraph([])];
+
+      tableRows.push(
+        new TableRow({
+          children: [
+            createCell([createParagraph([])], { widthPct: 6 }), // Col 1
+            createCell(cell1Children, { widthPct: 47, verticalAlign: 'center' }), // Col 2
+            createCell(cell2Children, { widthPct: 47, verticalAlign: 'center' }), // Col 3
+          ],
+        })
+      );
+    } else if (pageImages.length === 1) {
+      const img1 = pageImages[0];
+      const buf1 = getImageBuffer(img1.fileUrl);
+
+      const makeImageRun = (buf: Buffer, url: string) => {
+        return new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            new ImageRun({
+              data: buf,
+              transformation: {
+                width: 360,
+                height: 220,
+              },
+              type: getImageType(url),
+            }),
+          ],
+        });
+      };
+
+      const makeCaptionParagraph = (captionText: string) => {
+        return createParagraph(
+          [createText(captionText, { italic: true, size: 8, color: 'FF0000', bold: true })],
+          { alignment: AlignmentType.CENTER, before: 40, after: 40 }
+        );
+      };
+
+      const cell1Children: (Paragraph | Table)[] = buf1 ? [makeImageRun(buf1, img1.fileUrl), makeCaptionParagraph(img1.caption || 'Thi công')] : [createParagraph([])];
+
+      tableRows.push(
+        new TableRow({
+          children: [
+            createCell([createParagraph([])], { widthPct: 6 }), // Col 1
+            createCell(cell1Children, { colSpan: 2, widthPct: 94, verticalAlign: 'center' }), // Col 2 & 3
+          ],
+        })
+      );
     }
-  }
+
+    return new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: tableBorders,
+      rows: tableRows,
+    });
+  };
 
   // Signatures Table
   const signatureTable = new Table({
@@ -1297,39 +845,9 @@ export async function generateDailyReportWord(
     rows: [
       new TableRow({
         children: [
-          createCell(
-            [
-              createParagraph(
-                [createText('ĐẠI DIỆN TƯ VẤN GIÁM SÁT', { bold: true })],
-                {
-                  alignment: AlignmentType.CENTER,
-                },
-              ),
-            ],
-            { widthPct: 33 },
-          ),
-          createCell(
-            [
-              createParagraph(
-                [createText('ĐẠI DIỆN NHÀ THẦU CHÍNH', { bold: true })],
-                {
-                  alignment: AlignmentType.CENTER,
-                },
-              ),
-            ],
-            { widthPct: 34 },
-          ),
-          createCell(
-            [
-              createParagraph(
-                [createText('NGƯỜI LẬP BÁO CÁO', { bold: true })],
-                {
-                  alignment: AlignmentType.CENTER,
-                },
-              ),
-            ],
-            { widthPct: 33 },
-          ),
+          createCell([createParagraph([createText('ĐẠI DIỆN TƯ VẤN GIÁM SÁT', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 33 }),
+          createCell([createParagraph([createText('ĐẠI DIỆN NHÀ THẦU CHÍNH', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 34 }),
+          createCell([createParagraph([createText('NGƯỜI LẬP BÁO CÁO', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 33 }),
         ],
       }),
       new TableRow({
@@ -1341,180 +859,51 @@ export async function generateDailyReportWord(
       }),
       new TableRow({
         children: [
-          createCell(
-            [
-              createParagraph(
-                [
-                  createText(data.project.supervisorName || '---', {
-                    bold: true,
-                  }),
-                ],
-                { alignment: AlignmentType.CENTER },
-              ),
-            ],
-            { widthPct: 33 },
-          ),
-          createCell(
-            [
-              createParagraph(
-                [
-                  createText(data.project.contractorName || '---', {
-                    bold: true,
-                  }),
-                ],
-                { alignment: AlignmentType.CENTER },
-              ),
-            ],
-            { widthPct: 34 },
-          ),
-          createCell(
-            [
-              createParagraph(
-                [createText(data.createdBy.name, { bold: true })],
-                {
-                  alignment: AlignmentType.CENTER,
-                },
-              ),
-            ],
-            { widthPct: 33 },
-          ),
+          createCell([createParagraph([createText(data.project.supervisorName || '---', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 33 }),
+          createCell([createParagraph([createText(data.project.contractorName || '---', { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 34 }),
+          createCell([createParagraph([createText(data.createdBy.name, { bold: true })], { alignment: AlignmentType.CENTER })], { widthPct: 33 }),
         ],
       }),
     ],
   });
 
+  const childrenElements: (Paragraph | Table)[] = [];
+
+  // PAGE 1: Header Block + Section I + Section II
+  childrenElements.push(...createPageHeader());
+  childrenElements.push(eqMatTable);
+  childrenElements.push(new Paragraph({ spacing: { after: 150 } }));
+  childrenElements.push(manpowerTable);
+
+  // PAGE 2: Header Block + Section III (separated by a PageBreak!)
+  childrenElements.push(new Paragraph({ children: [new PageBreak()] }));
+  childrenElements.push(...createPageHeader());
+  childrenElements.push(workItemTable);
+
+  // If there are no images, signatures are placed at the bottom of Page 2
+  if (imagePagesList.length === 0) {
+    childrenElements.push(new Paragraph({ spacing: { after: 240 } }));
+    childrenElements.push(signatureTable);
+  } else {
+    // PAGE 3+: Render images page by page
+    imagePagesList.forEach((pageImages, pIdx) => {
+      childrenElements.push(new Paragraph({ children: [new PageBreak()] }));
+      childrenElements.push(...createPageHeader());
+      
+      childrenElements.push(createImagePageElements(pageImages, pIdx));
+
+      // Signatures placed at the bottom of the last page of images
+      if (pIdx === imagePagesList.length - 1) {
+        childrenElements.push(new Paragraph({ spacing: { after: 240 } }));
+        childrenElements.push(signatureTable);
+      }
+    });
+  }
+
   const doc = new Document({
     sections: [
       {
-        children: [
-          // Header Contractor / Country Title
-          headerTable,
-          new Paragraph({ spacing: { after: 200 } }),
-
-          // Title
-          createParagraph(
-            [
-              createText(data.title || 'BÁO CÁO NHẬT KÝ THI CÔNG HÀNG NGÀY', {
-                bold: true,
-                size: 14,
-                color: '1E3A8A',
-              }),
-            ],
-            { alignment: AlignmentType.CENTER },
-          ),
-          createParagraph(
-            [
-              createText(
-                `Số báo cáo: ${data.reportNo || '---'} | Ngày báo cáo: ${formatDate(data.reportDate)}`,
-                { italic: true, size: 10 },
-              ),
-            ],
-            { alignment: AlignmentType.CENTER, after: 240 },
-          ),
-
-          // Project general info table
-          projectInfoTable,
-          new Paragraph({ spacing: { after: 200 } }),
-
-          // Section A: Weather
-          createParagraph(
-            [
-              createText('A. Tình hình thời tiết', {
-                bold: true,
-                size: 11,
-                color: '1E3A8A',
-              }),
-            ],
-            { before: 240, after: 120 },
-          ),
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: tableBorders,
-            rows: weatherRowsList,
-          }),
-
-          // Section B: Manpower & Equipment
-          createParagraph(
-            [
-              createText('B. Tình hình nhân sự & thiết bị thi công', {
-                bold: true,
-                size: 11,
-                color: '1E3A8A',
-              }),
-            ],
-            { before: 240, after: 120 },
-          ),
-          createParagraph(
-            [createText('B1. Nhân sự thi công', { bold: true, size: 10 })],
-            {
-              before: 120,
-              after: 60,
-            },
-          ),
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: tableBorders,
-            rows: manpowerRowsList,
-          }),
-          new Paragraph({ spacing: { after: 120 } }),
-
-          createParagraph(
-            [
-              createText('B2. Thiết bị thi công chính', {
-                bold: true,
-                size: 10,
-              }),
-            ],
-            { before: 120, after: 60 },
-          ),
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: tableBorders,
-            rows: equipmentRowsList,
-          }),
-
-          // Section C: Materials
-          createParagraph(
-            [
-              createText('C. Vật tư nhập kho trong ngày', {
-                bold: true,
-                size: 11,
-                color: '1E3A8A',
-              }),
-            ],
-            { before: 240, after: 120 },
-          ),
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: tableBorders,
-            rows: materialRowsList,
-          }),
-
-          // Section D: Work Items
-          createParagraph(
-            [
-              createText('D. Khối lượng hạng mục thực hiện', {
-                bold: true,
-                size: 11,
-                color: '1E3A8A',
-              }),
-            ],
-            { before: 240, after: 120 },
-          ),
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: tableBorders,
-            rows: workItemRowsList,
-          }),
-          new Paragraph({ spacing: { after: 240 } }),
-
-          // Section E: Images
-          ...imageElements,
-          new Paragraph({ spacing: { after: 240 } }),
-
-          // Foot Signatures
-          signatureTable,
-        ],
+        children: childrenElements,
       },
     ],
   });
