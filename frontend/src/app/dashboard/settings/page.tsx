@@ -157,7 +157,7 @@ export default function SettingsPage() {
             <div className="flex flex-col sm:flex-row gap-6">
               {/* Avatar */}
               <div className="flex flex-col items-center gap-3 sm:pr-6 sm:border-r sm:border-slate-800/40">
-                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-2xl font-bold shadow-xl shadow-blue-600/20">
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-600 text-white text-2xl font-bold shadow-xl shadow-blue-600/15">
                   {getInitials(user?.name || '')}
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -268,7 +268,7 @@ export default function SettingsPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer shadow-lg shadow-blue-600/10 hover:shadow-blue-600/20 hover:-translate-y-0.5 active:translate-y-0"
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer shadow-lg shadow-blue-600/10 hover:shadow-blue-600/20 active:scale-[0.98]"
                 >
                   {loading ? (
                     <Clock className="h-4 w-4 animate-spin" />

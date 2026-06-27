@@ -150,8 +150,8 @@ export default function NewProjectPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Thêm dự án mới</h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <h1 className="text-2xl font-bold text-white tracking-tight">Thêm dự án mới</h1>
+          <p className="text-slate-500 text-sm mt-1">
             Khai báo thông tin chi tiết và thiết lập mặc định cho dự án công trình
           </p>
         </div>
@@ -168,22 +168,22 @@ export default function NewProjectPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Side: General Fields */}
         <div className="md:col-span-2 space-y-6">
-          <div className="bg-slate-900/40 border border-slate-850 rounded-xl p-6 space-y-6">
-            <h2 className="text-lg font-bold text-white tracking-tight border-b border-slate-850 pb-3 flex items-center gap-2">
-              <Building className="h-5 w-5 text-blue-500" />
+          <div className="bg-slate-900/40 border border-slate-800/40 rounded-xl p-6 space-y-6">
+            <h2 className="text-base font-bold text-white tracking-tight border-b border-slate-800/40 pb-3 flex items-center gap-2">
+              <Building className="h-4.5 w-4.5 text-blue-400" />
               Thông tin chung
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-350">Tên dự án *</label>
+                <label className="block text-sm font-medium text-slate-300">Tên dự án *</label>
                 <input
                   type="text"
                   {...register('name')}
                   placeholder="Ví dụ: Cảng tổng hợp Hòn Khoai"
-                  className={`mt-2 block w-full rounded-lg bg-slate-950/80 border ${
-                    errors.name ? 'border-red-500 focus:ring-red-500' : 'border-slate-800 focus:ring-blue-500 focus:border-blue-500'
-                  } py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition`}
+                  className={`mt-2 block w-full rounded-xl bg-slate-950/80 border ${
+                    errors.name ? 'border-red-500/60 focus:ring-red-500/20' : 'border-slate-800/60 focus:ring-blue-500/20 focus:border-blue-500/50'
+                  } py-2.5 px-3.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 transition-all duration-200`}
                 />
                 {errors.name && (
                   <p className="mt-1 text-xs text-red-400 font-medium">{errors.name.message}</p>
@@ -191,14 +191,14 @@ export default function NewProjectPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-355">Mã dự án *</label>
+                <label className="block text-sm font-medium text-slate-300">Mã dự án *</label>
                 <input
                   type="text"
                   {...register('code')}
                   placeholder="Ví dụ: HONKHOAI"
-                  className={`mt-2 block w-full rounded-lg bg-slate-950/80 border ${
-                    errors.code ? 'border-red-500 focus:ring-red-500' : 'border-slate-800 focus:ring-blue-500 focus:border-blue-500'
-                  } py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition uppercase`}
+                  className={`mt-2 block w-full rounded-xl bg-slate-950/80 border ${
+                    errors.code ? 'border-red-500/60 focus:ring-red-500/20' : 'border-slate-800/60 focus:ring-blue-500/20 focus:border-blue-500/50'
+                  } py-2.5 px-3.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 transition-all duration-200 uppercase`}
                 />
                 {errors.code && (
                   <p className="mt-1 text-xs text-red-400 font-medium">{errors.code.message}</p>
@@ -206,82 +206,82 @@ export default function NewProjectPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-350">Đại diện Chủ đầu tư</label>
+                <label className="block text-sm font-medium text-slate-300">Đại diện Chủ đầu tư</label>
                 <input
                   type="text"
                   {...register('ownerName')}
                   placeholder="Ví dụ: Quân chủng Hải quân"
-                  className="mt-2 block w-full rounded-lg bg-slate-950/80 border border-slate-800 py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className="mt-2 block w-full rounded-xl bg-slate-950/80 border border-slate-800/60 py-2.5 px-3.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-350">Tư vấn giám sát</label>
+                <label className="block text-sm font-medium text-slate-300">Tư vấn giám sát</label>
                 <input
                   type="text"
                   {...register('supervisorName')}
                   placeholder="Ví dụ: Liên danh Công ty CP TVXD Hàng hải"
-                  className="mt-2 block w-full rounded-lg bg-slate-950/80 border border-slate-800 py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className="mt-2 block w-full rounded-xl bg-slate-950/80 border border-slate-800/60 py-2.5 px-3.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-350">Nhà thầu chính</label>
+                <label className="block text-sm font-medium text-slate-300">Nhà thầu chính</label>
                 <input
                   type="text"
                   {...register('contractorName')}
                   placeholder="Ví dụ: Công ty TNHH ĐT XD Dacinco"
-                  className="mt-2 block w-full rounded-lg bg-slate-950/80 border border-slate-800 py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className="mt-2 block w-full rounded-xl bg-slate-950/80 border border-slate-800/60 py-2.5 px-3.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-350">Địa điểm thi công</label>
+                <label className="block text-sm font-medium text-slate-300">Địa điểm thi công</label>
                 <input
                   type="text"
                   {...register('location')}
                   placeholder="Ví dụ: Xã Đất Mũi, Ngọc Hiển, Cà Mau"
-                  className="mt-2 block w-full rounded-lg bg-slate-950/80 border border-slate-800 py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className="mt-2 block w-full rounded-xl bg-slate-950/80 border border-slate-800/60 py-2.5 px-3.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200"
                 />
               </div>
             </div>
           </div>
 
           {/* Config fields */}
-          <div className="bg-slate-900/40 border border-slate-850 rounded-xl p-6 space-y-6">
-            <h2 className="text-lg font-bold text-white tracking-tight border-b border-slate-850 pb-3 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-blue-500" />
+          <div className="bg-slate-900/40 border border-slate-800/40 rounded-xl p-6 space-y-6">
+            <h2 className="text-base font-bold text-white tracking-tight border-b border-slate-800/40 pb-3 flex items-center gap-2">
+              <FileText className="h-4.5 w-4.5 text-blue-400" />
               Thiết lập Báo cáo mặc định
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-350">Người lập báo cáo mặc định</label>
+                <label className="block text-sm font-medium text-slate-300">Người lập báo cáo mặc định</label>
                 <input
                   type="text"
                   {...register('defaultReporterName')}
                   placeholder="Ví dụ: Trần Mạnh Tuấn"
-                  className="mt-2 block w-full rounded-lg bg-slate-950/80 border border-slate-800 py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className="mt-2 block w-full rounded-xl bg-slate-950/80 border border-slate-800/60 py-2.5 px-3.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-350">Đơn vị nhận báo cáo mặc định</label>
+                <label className="block text-sm font-medium text-slate-300">Đơn vị nhận báo cáo mặc định</label>
                 <input
                   type="text"
                   {...register('defaultReceiver')}
                   placeholder="Ví dụ: Ban Lãnh đạo công ty"
-                  className="mt-2 block w-full rounded-lg bg-slate-950/80 border border-slate-800 py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className="mt-2 block w-full rounded-xl bg-slate-950/80 border border-slate-800/60 py-2.5 px-3.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200"
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-slate-350">CC mặc định (cách nhau bởi dấu phẩy)</label>
+                <label className="block text-sm font-medium text-slate-300">CC mặc định (cách nhau bởi dấu phẩy)</label>
                 <input
                   type="text"
                   {...register('defaultCc')}
                   placeholder="Ví dụ: Ban điều hành dự án, Phòng Kỹ thuật"
-                  className="mt-2 block w-full rounded-lg bg-slate-950/80 border border-slate-800 py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className="mt-2 block w-full rounded-xl bg-slate-950/80 border border-slate-800/60 py-2.5 px-3.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200"
                 />
               </div>
             </div>
@@ -291,8 +291,8 @@ export default function NewProjectPage() {
         {/* Right Side: Logo Upload & Submit */}
         <div className="space-y-6">
           {/* Logo panel */}
-          <div className="bg-slate-900/40 border border-slate-850 rounded-xl p-6 space-y-4 flex flex-col items-center">
-            <h2 className="text-sm font-bold text-white tracking-tight self-start border-b border-slate-850 pb-2 w-full">
+          <div className="bg-slate-900/40 border border-slate-800/40 rounded-xl p-6 space-y-4 flex flex-col items-center">
+            <h2 className="text-sm font-bold text-white tracking-tight self-start border-b border-slate-800/40 pb-2 w-full">
               Logo dự án
             </h2>
 
@@ -322,11 +322,11 @@ export default function NewProjectPage() {
           </div>
 
           {/* Submit Panel */}
-          <div className="bg-slate-900/40 border border-slate-850 rounded-xl p-6 space-y-4">
+          <div className="bg-slate-900/40 border border-slate-800/40 rounded-xl p-6 space-y-4">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 px-4 text-sm font-semibold text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 px-4 text-sm font-semibold text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-blue-600/15 cursor-pointer"
             >
               {isSubmitting ? (
                 <>
@@ -340,7 +340,7 @@ export default function NewProjectPage() {
 
             <Link
               href="/dashboard/projects"
-              className="w-full inline-flex items-center justify-center rounded-lg border border-slate-800 hover:bg-slate-850 py-3 px-4 text-sm font-semibold text-slate-400 hover:text-slate-200 transition"
+              className="w-full inline-flex items-center justify-center rounded-xl border border-slate-800/60 hover:bg-slate-800/40 py-3 px-4 text-sm font-semibold text-slate-400 hover:text-slate-200 active:scale-[0.98] transition-all duration-200"
             >
               Hủy bỏ
             </Link>

@@ -281,15 +281,15 @@ export default function ProjectDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">{project.name}</h1>
-            <p className="text-slate-400 text-sm mt-1">Mã dự án: <span className="font-mono text-blue-400 font-semibold">{project.code}</span></p>
+            <h1 className="text-2xl font-bold text-white tracking-tight">{project.name}</h1>
+            <p className="text-slate-500 text-sm mt-1">Mã dự án: <span className="font-mono text-blue-400 font-semibold">{project.code}</span></p>
           </div>
         </div>
 
         {canManage && (
           <Link
             href={`/dashboard/projects/${project.id}/edit`}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 border border-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-205 hover:bg-slate-850 hover:text-white transition-all"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 border border-slate-800/60 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-800/60 hover:text-white active:scale-[0.98] transition-all duration-200"
           >
             <Edit3 className="h-4 w-4" />
             Chỉnh sửa thông tin
@@ -301,9 +301,9 @@ export default function ProjectDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Info panel */}
         <div className="md:col-span-2 space-y-6">
-          <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-6 space-y-6 shadow-md">
-            <h2 className="text-lg font-bold text-white tracking-tight border-b border-slate-850 pb-3 flex items-center gap-2">
-              <Building className="h-5 w-5 text-blue-500" />
+          <div className="bg-slate-900/40 border border-slate-800/40 rounded-xl p-6 space-y-6">
+            <h2 className="text-base font-bold text-white tracking-tight border-b border-slate-800/40 pb-3 flex items-center gap-2">
+              <Building className="h-4.5 w-4.5 text-blue-400" />
               Thông tin dự án
             </h2>
 
@@ -354,7 +354,7 @@ export default function ProjectDetailPage() {
 
         {/* Right side: Logo & Status Card */}
         <div className="space-y-6">
-          <div className="bg-slate-900/40 border border-slate-855 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-md relative overflow-hidden">
+          <div className="bg-slate-900/40 border border-slate-800/40 rounded-xl p-6 pt-10 flex flex-col items-center justify-center text-center relative">
             <div className="absolute top-2 right-2">
               <span
                 className={`inline-block rounded px-2 py-0.5 text-3xs font-bold border ${
@@ -377,7 +377,7 @@ export default function ProjectDetailPage() {
                   unoptimized
                 />
               ) : (
-                <div className="text-3xl font-bold bg-gradient-to-tr from-blue-500 to-indigo-500 bg-clip-text text-transparent">
+                <div className="text-3xl font-bold text-blue-400">
                   {project.code}
                 </div>
               )}
@@ -390,10 +390,10 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* Daily Reports list (Phase 3) */}
-      <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-6 space-y-6 shadow-md">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-850 pb-4">
-          <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-            <FileText className="h-5 w-5 text-blue-500" />
+      <div className="bg-slate-900/40 border border-slate-800/40 rounded-xl p-6 space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800/40 pb-4">
+          <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+            <FileText className="h-4.5 w-4.5 text-blue-400" />
             Lịch sử Báo cáo
           </h2>
 
@@ -404,7 +404,7 @@ export default function ProjectDetailPage() {
                 setModalError(null);
                 setIsModalOpen(true);
               }}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-500 transition-all shadow-md hover:shadow-blue-500/10 cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-500 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-blue-600/15 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               Lập báo cáo ngày
@@ -421,12 +421,12 @@ export default function ProjectDetailPage() {
 
         {reportsLoading ? (
           <div className="flex h-32 items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-slate-550" />
+            <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
           </div>
         ) : reports.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Calendar className="h-10 w-10 text-slate-700 mb-3" />
-            <h3 className="text-sm font-semibold text-slate-350">Chưa có báo cáo nào</h3>
+            <h3 className="text-sm font-semibold text-slate-300">Chưa có báo cáo nào</h3>
             <p className="text-xs text-slate-500 mt-1 max-w-sm">
               Dự án này chưa có báo cáo ngày. Hãy bấm nút &quot;Lập báo cáo ngày&quot; ở trên để khởi tạo.
             </p>
@@ -435,7 +435,7 @@ export default function ProjectDetailPage() {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-sm text-slate-300">
               <thead>
-                <tr className="border-b border-slate-850 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <tr className="border-b border-slate-800/40 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   <th className="py-3.5 px-4">Số báo cáo</th>
                   <th className="py-3.5 px-4">Ngày báo cáo</th>
                   <th className="py-3.5 px-4">Loại</th>
@@ -445,9 +445,9 @@ export default function ProjectDetailPage() {
                   <th className="py-3.5 px-4 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-850/50">
+              <tbody className="divide-y divide-slate-800/30">
                 {reports.map((report) => (
-                  <tr key={report.id} className="hover:bg-slate-850/20 transition-colors">
+                  <tr key={report.id} className="hover:bg-slate-800/20 transition-colors">
                     <td className="py-4 px-4 font-semibold text-white font-mono text-xs">{report.reportNo || '---'}</td>
                     <td className="py-4 px-4">{new Date(report.reportDate).toLocaleDateString('vi-VN', { timeZone: 'UTC' })}</td>
                     <td className="py-4 px-4 text-xs font-medium text-slate-400">{getReportTypeLabel(report.reportType)}</td>
@@ -457,7 +457,7 @@ export default function ProjectDetailPage() {
                     <td className="py-4 px-4 text-right space-x-1">
                       <Link
                         href={`/dashboard/projects/${projectId}/reports/${report.id}/edit`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-850 bg-slate-900/50 text-slate-350 hover:text-white hover:bg-slate-800 transition"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800/60 bg-slate-900/50 text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
                         title="Chỉnh sửa & Xem chi tiết"
                       >
                         <ChevronRight className="h-4 w-4" />
@@ -475,7 +475,7 @@ export default function ProjectDetailPage() {
                             setModalError(null);
                             setIsModalOpen(true);
                           }}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-850 bg-slate-900/50 text-blue-450 hover:text-blue-300 hover:bg-slate-800 transition"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800/60 bg-slate-900/50 text-blue-400 hover:text-blue-300 hover:bg-slate-800 transition cursor-pointer"
                           title="Sao chép từ báo cáo này"
                         >
                           <Copy className="h-4 w-4" />
@@ -485,7 +485,7 @@ export default function ProjectDetailPage() {
                       {canManage && (
                         <button
                           onClick={() => void handleDeleteReport(report.id)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-850 bg-slate-900/50 text-red-450 hover:text-red-300 hover:bg-red-950/20 transition"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800/60 bg-slate-900/50 text-red-400 hover:text-red-300 hover:bg-red-950/20 transition cursor-pointer"
                           title="Xóa báo cáo"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -526,13 +526,13 @@ export default function ProjectDetailPage() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-350">Ngày báo cáo *</label>
+                <label className="block text-sm font-medium text-slate-300">Ngày báo cáo *</label>
                 <input
                   type="date"
                   {...register('reportDate')}
-                  className={`mt-2 block w-full rounded-lg bg-slate-950 border ${
-                    errors.reportDate ? 'border-red-500' : 'border-slate-800'
-                  } py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-550/20 focus:border-blue-550 transition`}
+                  className={`mt-2 block w-full rounded-xl bg-slate-950 border ${
+                    errors.reportDate ? 'border-red-500/60' : 'border-slate-800/60'
+                  } py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200`}
                 />
                 {errors.reportDate && (
                   <p className="mt-1 text-xs text-red-400 font-medium">{errors.reportDate.message}</p>
@@ -540,10 +540,10 @@ export default function ProjectDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-350">Loại báo cáo *</label>
+                <label className="block text-sm font-medium text-slate-300">Loại báo cáo *</label>
                 <select
                   {...register('reportType')}
-                  className="mt-2 block w-full rounded-lg bg-slate-950 border border-slate-800 py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-550/20 focus:border-blue-550 transition"
+                  className="mt-2 block w-full rounded-xl bg-slate-950 border border-slate-800/60 py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200"
                 >
                   <option value="DAILY">Báo cáo ngày (DAILY)</option>
                   <option value="SUMMARY">Báo cáo tóm tắt (SUMMARY)</option>
@@ -560,7 +560,7 @@ export default function ProjectDetailPage() {
                     <input
                       type="checkbox"
                       {...register('cloneFromPrevious')}
-                      className="rounded bg-slate-950 border-slate-850 text-blue-600 focus:ring-blue-550/20 h-4 w-4"
+                      className="rounded bg-slate-950 border-slate-800 text-blue-600 focus:ring-blue-500/20 h-4 w-4"
                     />
                     Sao chép dữ liệu từ báo cáo trước
                   </label>
@@ -570,7 +570,7 @@ export default function ProjectDetailPage() {
                       <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Chọn báo cáo nguồn *</label>
                       <select
                         {...register('sourceReportId')}
-                        className="mt-2 block w-full rounded-lg bg-slate-950 border border-slate-800 py-2 px-3 text-sm text-slate-250 focus:outline-none focus:ring-2 focus:ring-blue-550/20 focus:border-blue-550 transition"
+                        className="mt-2 block w-full rounded-xl bg-slate-950 border border-slate-800/60 py-2 px-3.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200"
                       >
                         <option value="">-- Chọn báo cáo nguồn --</option>
                         {reports.map((r) => (
@@ -588,7 +588,7 @@ export default function ProjectDetailPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg border border-slate-800 hover:bg-slate-850 px-4 py-2.5 text-sm font-semibold text-slate-400 hover:text-slate-200 transition"
+                  className="rounded-xl border border-slate-800/60 hover:bg-slate-800/40 px-4 py-2.5 text-sm font-semibold text-slate-400 hover:text-slate-200 active:scale-[0.98] transition-all duration-200 cursor-pointer"
                 >
                   Hủy bỏ
                 </button>
@@ -596,7 +596,7 @@ export default function ProjectDetailPage() {
                 <button
                   type="submit"
                   disabled={isCreating}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 transition cursor-pointer"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 active:scale-[0.98] transition-all duration-200 cursor-pointer"
                 >
                   {isCreating ? (
                     <>

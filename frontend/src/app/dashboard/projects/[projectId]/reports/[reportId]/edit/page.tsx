@@ -1658,7 +1658,7 @@ export default function ReportEditPage() {
   if (authLoading || isLoading) {
     return (
       <div className="flex h-64 w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
       </div>
     );
   }
@@ -1673,7 +1673,7 @@ export default function ReportEditPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Biên tập báo cáo ngày</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Biên tập báo cáo ngày</h1>
         </div>
         <div className="flex items-start gap-3 rounded-lg bg-red-950/50 border border-red-800/60 p-4 text-sm text-red-200">
           <AlertCircle className="h-5 w-5 shrink-0 text-red-400" />
@@ -1807,7 +1807,7 @@ export default function ReportEditPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-slate-300 border-collapse text-left">
               <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-450 font-bold uppercase text-[10px]">
+                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-400 font-bold uppercase text-[10px]">
                   <th className="py-2.5 px-3">Thời gian</th>
                   <th className="py-2.5 px-3 text-center">Nắng</th>
                   <th className="py-2.5 px-3 text-center">Mưa</th>
@@ -1818,7 +1818,7 @@ export default function ReportEditPage() {
                   <th className="py-2.5 px-3">Ghi chú</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-850">
+              <tbody className="divide-y divide-slate-800/40">
                 {(snapshot.weatherRows || []).map((w, idx) => (
                   <tr key={idx} className="hover:bg-slate-900/30">
                     <td className="py-2.5 px-3 font-semibold text-slate-200">{w.period}</td>
@@ -1845,7 +1845,7 @@ export default function ReportEditPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-slate-300 border-collapse text-left">
               <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-450 font-bold uppercase text-[10px]">
+                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-400 font-bold uppercase text-[10px]">
                   <th className="py-2.5 px-3">Hạng mục nhân sự</th>
                   <th className="py-2.5 px-3">Đơn vị</th>
                   <th className="py-2.5 px-3 text-right">Lũy kế trước</th>
@@ -1858,7 +1858,7 @@ export default function ReportEditPage() {
                   <th className="py-2.5 px-3">Ghi chú</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-850">
+              <tbody className="divide-y divide-slate-800/40">
                 {(snapshot.manpowerRows || []).map((m, idx) => (
                   <tr key={idx} className="hover:bg-slate-900/30">
                     <td className="py-2.5 px-3 font-semibold text-slate-200">{m.name}</td>
@@ -1887,7 +1887,7 @@ export default function ReportEditPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-slate-300 border-collapse text-left">
               <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-450 font-bold uppercase text-[10px]">
+                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-400 font-bold uppercase text-[10px]">
                   <th className="py-2.5 px-3">Hạng mục thiết bị</th>
                   <th className="py-2.5 px-3">Đơn vị</th>
                   <th className="py-2.5 px-3 text-right">Lũy kế trước</th>
@@ -1899,7 +1899,7 @@ export default function ReportEditPage() {
                   <th className="py-2.5 px-3">Ghi chú</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-850">
+              <tbody className="divide-y divide-slate-800/40">
                 {(snapshot.equipmentRows || []).map((e, idx) => (
                   <tr key={idx} className="hover:bg-slate-900/30">
                     <td className="py-2.5 px-3 font-semibold text-slate-200">{e.name}</td>
@@ -1927,14 +1927,14 @@ export default function ReportEditPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-slate-300 border-collapse text-left">
               <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-450 font-bold uppercase text-[10px]">
+                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-400 font-bold uppercase text-[10px]">
                   <th className="py-2.5 px-3">Tên vật tư</th>
                   <th className="py-2.5 px-3">Đơn vị</th>
                   <th className="py-2.5 px-3 text-right">Số lượng tiêu hao</th>
                   <th className="py-2.5 px-3">Ghi chú</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-850">
+              <tbody className="divide-y divide-slate-800/40">
                 {(snapshot.materialRows || []).map((mat, idx) => (
                   <tr key={idx} className="hover:bg-slate-900/30">
                     <td className="py-2.5 px-3 font-semibold text-slate-200">{mat.name}</td>
@@ -1957,7 +1957,7 @@ export default function ReportEditPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-slate-300 border-collapse text-left">
               <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-450 font-bold uppercase text-[10px]">
+                <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-400 font-bold uppercase text-[10px]">
                   <th className="py-2.5 px-3">Mã</th>
                   <th className="py-2.5 px-3">Hạng mục công việc</th>
                   <th className="py-2.5 px-3">Đơn vị</th>
@@ -1970,7 +1970,7 @@ export default function ReportEditPage() {
                   <th className="py-2.5 px-3">Ghi chú</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-850">
+              <tbody className="divide-y divide-slate-800/40">
                 {(snapshot.workItems || []).map((w, idx) => (
                   <tr
                     key={idx}
@@ -1987,7 +1987,7 @@ export default function ReportEditPage() {
                     <td className="py-2.5 px-3 text-right text-slate-400">{w.previousAccumulatedQuantity !== null ? Number(w.previousAccumulatedQuantity) : '---'}</td>
                     <td className="py-2.5 px-3 text-right text-blue-400 font-bold">{w.todayQuantity !== null ? Number(w.todayQuantity) : '---'}</td>
                     <td className="py-2.5 px-3 text-right text-white font-bold">{w.currentAccumulatedQuantity !== null ? Number(w.currentAccumulatedQuantity) : '---'}</td>
-                    <td className="py-2.5 px-3 text-right text-emerald-450 font-bold">
+                    <td className="py-2.5 px-3 text-right text-emerald-400 font-bold">
                       {w.completionPercent !== null ? `${Number(w.completionPercent).toFixed(1)}%` : '---'}
                     </td>
                     <td className="py-2.5 px-3">{w.personInCharge || '---'}</td>
@@ -2007,7 +2007,7 @@ export default function ReportEditPage() {
         return (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {(snapshot.images || []).map((img) => (
-              <div key={img.id} className="bg-slate-950 rounded-xl overflow-hidden border border-slate-850 p-2.5 space-y-2">
+              <div key={img.id} className="bg-slate-950 rounded-xl overflow-hidden border border-slate-800/40 p-2.5 space-y-2">
                 <div className="aspect-video relative rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -2034,7 +2034,7 @@ export default function ReportEditPage() {
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Top Header & Toolbar */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-slate-850 pb-5">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-slate-800/40 pb-5">
         <div className="flex items-center gap-4">
           <Link
             href={`/dashboard/projects/${projectId}`}
@@ -2048,7 +2048,7 @@ export default function ReportEditPage() {
               {renderStatusBadge(report.status)}
             </div>
             <p className="text-slate-400 text-sm mt-1">
-              Dự án: <span className="text-white font-medium">{report.project.name}</span> | Số báo cáo: <span className="font-mono text-blue-450 font-bold">{report.reportNo}</span> | Ngày báo cáo: <span className="text-slate-200">{new Date(report.reportDate).toLocaleDateString('vi-VN', { timeZone: 'UTC' })}</span>
+              Dự án: <span className="text-white font-medium">{report.project.name}</span> | Số báo cáo: <span className="font-mono text-blue-400 font-bold">{report.reportNo}</span> | Ngày báo cáo: <span className="text-slate-200">{new Date(report.reportDate).toLocaleDateString('vi-VN', { timeZone: 'UTC' })}</span>
             </p>
           </div>
         </div>
@@ -2060,7 +2060,7 @@ export default function ReportEditPage() {
             <button
               onClick={() => void handleStatusChange('submit')}
               disabled={isSubmittingAction}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-650 hover:bg-blue-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer"
             >
               <Send className="h-4 w-4" />
               Gửi duyệt
@@ -2072,7 +2072,7 @@ export default function ReportEditPage() {
             <button
               onClick={() => void handleStatusChange('approve')}
               disabled={isSubmittingAction}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-650 hover:bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer"
             >
               <CheckCircle className="h-4 w-4" />
               Duyệt báo cáo
@@ -2106,7 +2106,7 @@ export default function ReportEditPage() {
           {/* Return to Project page */}
           <Link
             href={`/dashboard/projects/${projectId}`}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-900/50 hover:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-350 hover:text-white transition"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-900/50 hover:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white transition"
           >
             Về trang dự án
           </Link>
@@ -2115,7 +2115,7 @@ export default function ReportEditPage() {
 
       {successMsg && (
         <div className="flex items-center gap-3 rounded-lg bg-emerald-950/40 border border-emerald-800/40 p-4 text-sm text-emerald-200">
-          <CheckCircle className="h-5 w-5 shrink-0 text-emerald-450" />
+          <CheckCircle className="h-5 w-5 shrink-0 text-emerald-400" />
           <span>{successMsg}</span>
         </div>
       )}
@@ -2128,13 +2128,13 @@ export default function ReportEditPage() {
       )}
 
       {/* Editor Tabs Navigation */}
-      <div className="border-b border-slate-850/80 overflow-x-auto flex gap-2 scrollbar-none">
+      <div className="border-b border-slate-800/50 overflow-x-auto flex gap-2 scrollbar-none">
         <button
           onClick={() => setActiveTab('general')}
           className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'general'
-              ? 'border-blue-500 text-blue-450'
-              : 'border-transparent text-slate-450 hover:text-slate-200 hover:border-slate-800'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-800'
           }`}
         >
           <FileText className="h-4 w-4" />
@@ -2146,8 +2146,8 @@ export default function ReportEditPage() {
             onClick={() => setActiveTab('message')}
             className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'message'
-                ? 'border-blue-500 text-blue-450'
-                : 'border-transparent text-slate-450 hover:text-slate-200 hover:border-slate-800'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-800'
             }`}
           >
             <FileText className="h-4 w-4" />
@@ -2159,8 +2159,8 @@ export default function ReportEditPage() {
           onClick={() => setActiveTab('weather')}
           className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'weather'
-              ? 'border-blue-500 text-blue-450'
-              : 'border-transparent text-slate-450 hover:text-slate-200 hover:border-slate-800'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-800'
           }`}
         >
           <CloudSun className="h-4 w-4" />
@@ -2171,8 +2171,8 @@ export default function ReportEditPage() {
           onClick={() => setActiveTab('manpower')}
           className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'manpower'
-              ? 'border-blue-500 text-blue-450'
-              : 'border-transparent text-slate-450 hover:text-slate-200 hover:border-slate-800'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-800'
           }`}
         >
           <Users className="h-4 w-4" />
@@ -2183,8 +2183,8 @@ export default function ReportEditPage() {
           onClick={() => setActiveTab('equipment')}
           className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'equipment'
-              ? 'border-blue-500 text-blue-450'
-              : 'border-transparent text-slate-450 hover:text-slate-200 hover:border-slate-800'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-800'
           }`}
         >
           <Wrench className="h-4 w-4" />
@@ -2195,8 +2195,8 @@ export default function ReportEditPage() {
           onClick={() => setActiveTab('materials')}
           className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'materials'
-              ? 'border-blue-500 text-blue-450'
-              : 'border-transparent text-slate-450 hover:text-slate-200 hover:border-slate-800'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-800'
           }`}
         >
           <Package className="h-4 w-4" />
@@ -2207,8 +2207,8 @@ export default function ReportEditPage() {
           onClick={() => setActiveTab('workitems')}
           className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'workitems'
-              ? 'border-blue-500 text-blue-450'
-              : 'border-transparent text-slate-450 hover:text-slate-200 hover:border-slate-800'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-800'
           }`}
         >
           <Layers className="h-4 w-4" />
@@ -2219,8 +2219,8 @@ export default function ReportEditPage() {
           onClick={() => setActiveTab('images')}
           className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'images'
-              ? 'border-blue-500 text-blue-450'
-              : 'border-transparent text-slate-450 hover:text-slate-200 hover:border-slate-800'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-800'
           }`}
         >
           <ImageIcon className="h-4 w-4" />
@@ -2231,8 +2231,8 @@ export default function ReportEditPage() {
           onClick={() => setActiveTab('export')}
           className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'export'
-              ? 'border-blue-500 text-blue-450'
-              : 'border-transparent text-slate-450 hover:text-slate-200 hover:border-slate-800'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-800'
           }`}
         >
           <Send className="h-4 w-4" />
@@ -2243,8 +2243,8 @@ export default function ReportEditPage() {
           onClick={() => setActiveTab('history')}
           className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'history'
-              ? 'border-blue-500 text-blue-450'
-              : 'border-transparent text-slate-450 hover:text-slate-200 hover:border-slate-800'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-800'
           }`}
         >
           <History className="h-4 w-4" />
@@ -2253,7 +2253,7 @@ export default function ReportEditPage() {
       </div>
 
       {/* Tabs Content */}
-      <div className="bg-slate-900/30 border border-slate-850 rounded-2xl p-6 shadow-md min-h-[400px]">
+      <div className="bg-slate-900/30 border border-slate-800/40 rounded-xl p-6 min-h-[400px]">
         {/* Tab Lời dẫn: Cho MESSAGE report */}
         {activeTab === 'message' && report.reportType === 'MESSAGE' && (
           <div className="space-y-6">
@@ -2264,9 +2264,9 @@ export default function ReportEditPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-800/40 pb-3">
               <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <FileText className="h-4 w-4 text-blue-500" />
+                <FileText className="h-4 w-4 text-blue-400" />
                 Lời dẫn báo cáo
               </h3>
               <div className="flex items-center gap-2">
@@ -2275,7 +2275,7 @@ export default function ReportEditPage() {
                     <button
                       onClick={handleRegenerateMessage}
                       disabled={tabLoading}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-800 bg-slate-955 hover:bg-slate-850 px-3 py-2 text-xs font-semibold text-slate-350 hover:text-white transition cursor-pointer"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-800 bg-slate-955 hover:bg-slate-800/40 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
                     >
                       Sinh lại lời dẫn
                     </button>
@@ -2294,14 +2294,14 @@ export default function ReportEditPage() {
 
             {tabError && (
               <div className="flex items-start gap-3 rounded-lg bg-red-950/50 border border-red-800/60 p-3 text-xs text-red-200">
-                <AlertCircle className="h-4 w-4 shrink-0 text-red-450" />
+                <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
                 <span>{tabError}</span>
               </div>
             )}
 
             {tabSuccessMsg && (
               <div className="flex items-center gap-3 rounded-lg bg-emerald-950/40 border border-emerald-800/40 p-3 text-xs text-emerald-250">
-                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-450" />
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
                 <span>{tabSuccessMsg}</span>
               </div>
             )}
@@ -2317,7 +2317,7 @@ export default function ReportEditPage() {
                   value={localMessageContent}
                   onChange={(e) => setLocalMessageContent(e.target.value)}
                   placeholder="Nội dung lời dẫn báo cáo..."
-                  className="w-full min-h-[400px] rounded-lg bg-slate-950/85 border border-slate-850 p-4 text-sm text-slate-202 focus:outline-none focus:ring-2 focus:ring-blue-550/20 focus:border-blue-550 transition font-mono leading-relaxed resize-y"
+                  className="w-full min-h-[400px] rounded-lg bg-slate-950/85 border border-slate-800/40 p-4 text-sm text-slate-202 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition font-mono leading-relaxed resize-y"
                 />
               </div>
             )}
@@ -2341,20 +2341,20 @@ export default function ReportEditPage() {
               <div className="lg:col-span-2 space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-blue-500" />
+                    <FileText className="h-4 w-4 text-blue-400" />
                     Thông tin Báo cáo
                   </h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-350">Số báo cáo *</label>
+                      <label className="block text-sm font-medium text-slate-300">Số báo cáo *</label>
                       <input
                         type="text"
                         disabled={isFinalized || !canEdit}
                         {...register('reportNo')}
                         className={`mt-2 block w-full rounded-lg bg-slate-950/80 border ${
                           errors.reportNo ? 'border-red-500' : 'border-slate-800'
-                        } py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-550/20 focus:border-blue-550 disabled:opacity-50 disabled:cursor-not-allowed transition`}
+                        } py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                       />
                       {errors.reportNo && (
                         <p className="mt-1 text-xs text-red-400 font-medium">{errors.reportNo.message}</p>
@@ -2362,24 +2362,24 @@ export default function ReportEditPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-350">Ngày báo cáo (Không thể sửa)</label>
+                      <label className="block text-sm font-medium text-slate-300">Ngày báo cáo (Không thể sửa)</label>
                       <input
                         type="text"
                         disabled
                         value={new Date(report.reportDate).toLocaleDateString('vi-VN', { timeZone: 'UTC' })}
-                        className="mt-2 block w-full rounded-lg bg-slate-950/40 border border-slate-850 py-2.5 px-3 text-slate-500 cursor-not-allowed font-medium"
+                        className="mt-2 block w-full rounded-lg bg-slate-950/40 border border-slate-800/40 py-2.5 px-3 text-slate-500 cursor-not-allowed font-medium"
                       />
                     </div>
 
                     <div className="sm:col-span-2">
-                      <label className="block text-sm font-medium text-slate-350">Tiêu đề báo cáo *</label>
+                      <label className="block text-sm font-medium text-slate-300">Tiêu đề báo cáo *</label>
                       <input
                         type="text"
                         disabled={isFinalized || !canEdit}
                         {...register('title')}
                         className={`mt-2 block w-full rounded-lg bg-slate-950/80 border ${
                           errors.title ? 'border-red-500' : 'border-slate-800'
-                        } py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-550/20 focus:border-blue-550 disabled:opacity-50 disabled:cursor-not-allowed transition`}
+                        } py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                       />
                       {errors.title && (
                         <p className="mt-1 text-xs text-red-400 font-medium">{errors.title.message}</p>
@@ -2387,33 +2387,33 @@ export default function ReportEditPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-350">Ngày phát hành</label>
+                      <label className="block text-sm font-medium text-slate-300">Ngày phát hành</label>
                       <input
                         type="date"
                         disabled={isFinalized || !canEdit}
                         {...register('issueDate')}
-                        className="mt-2 block w-full rounded-lg bg-slate-950/80 border border-slate-800 py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-550/20 focus:border-blue-550 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        className="mt-2 block w-full rounded-lg bg-slate-950/80 border border-slate-800 py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-350">Loại báo cáo</label>
+                      <label className="block text-sm font-medium text-slate-300">Loại báo cáo</label>
                       <input
                         type="text"
                         disabled
                         value={getReportTypeLabel(report.reportType)}
-                        className="mt-2 block w-full rounded-lg bg-slate-950/40 border border-slate-850 py-2.5 px-3 text-slate-500 cursor-not-allowed font-medium"
+                        className="mt-2 block w-full rounded-lg bg-slate-950/40 border border-slate-800/40 py-2.5 px-3 text-slate-500 cursor-not-allowed font-medium"
                       />
                     </div>
                   </div>
                 </div>
 
                 {!isFinalized && canEdit && (
-                  <div className="pt-4 border-t border-slate-850 flex justify-end">
+                  <div className="pt-4 border-t border-slate-800/40 flex justify-end">
                     <button
                       type="submit"
                       disabled={isSubmittingAction || !isDirty}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 px-5 py-2.5 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer shadow-md hover:shadow-blue-500/10"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 px-5 py-2.5 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer hover:shadow-blue-500/10"
                     >
                       <Save className="h-4 w-4" />
                       Lưu thay đổi
@@ -2423,8 +2423,8 @@ export default function ReportEditPage() {
               </div>
 
               {/* Right Side: Project defaults (Read-only for report reference) */}
-              <div className="bg-slate-900/40 border border-slate-850 rounded-xl p-5 space-y-5 h-fit text-sm">
-                <h3 className="font-bold text-white tracking-tight border-b border-slate-850 pb-2.5 flex items-center gap-2">
+              <div className="bg-slate-900/40 border border-slate-800/40 rounded-xl p-5 space-y-5 h-fit text-sm">
+                <h3 className="font-bold text-white tracking-tight border-b border-slate-800/40 pb-2.5 flex items-center gap-2">
                   <Building className="h-4 w-4 text-blue-555" />
                   Mặc định từ dự án
                 </h3>
@@ -2486,9 +2486,9 @@ export default function ReportEditPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-800/40 pb-3">
               <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <CloudSun className="h-4 w-4 text-blue-500" />
+                <CloudSun className="h-4 w-4 text-blue-400" />
                 Thời tiết công trường
               </h3>
               {!isFinalized && canEdit && (
@@ -2512,7 +2512,7 @@ export default function ReportEditPage() {
 
             {tabSuccessMsg && (
               <div className="flex items-center gap-3 rounded-lg bg-emerald-950/40 border border-emerald-800/40 p-3 text-xs text-emerald-250">
-                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-450" />
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
                 <span>{tabSuccessMsg}</span>
               </div>
             )}
@@ -2523,9 +2523,9 @@ export default function ReportEditPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left text-xs text-slate-350">
+                <table className="w-full border-collapse text-left text-xs text-slate-300">
                   <thead>
-                    <tr className="border-b border-slate-850 font-semibold text-slate-500 uppercase tracking-wider">
+                    <tr className="border-b border-slate-800/40 font-semibold text-slate-500 uppercase tracking-wider">
                       <th className="py-2.5 px-3 w-28">Buổi</th>
                       <th className="py-2.5 px-3 text-center w-20">Nắng</th>
                       <th className="py-2.5 px-3 text-center w-20">Mưa</th>
@@ -2536,9 +2536,9 @@ export default function ReportEditPage() {
                       <th className="py-2.5 px-3">Ghi chú</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-850/50">
+                  <tbody className="divide-y divide-slate-800/30">
                     {weatherRows.map((row, index) => (
-                      <tr key={row.period} className="hover:bg-slate-850/10 transition-colors">
+                      <tr key={row.period} className="hover:bg-slate-800/40/10 transition-colors">
                         <td className="py-3 px-3 font-semibold text-white">{row.period}</td>
                         <td className="py-3 px-3 text-center">
                           <input
@@ -2546,7 +2546,7 @@ export default function ReportEditPage() {
                             disabled={isFinalized || !canEdit}
                             checked={row.isSunny}
                             onChange={(e) => handleWeatherChange(index, 'isSunny', e.target.checked)}
-                            className="rounded bg-slate-950 border-slate-800 text-blue-600 focus:ring-blue-550/20 h-4 w-4"
+                            className="rounded bg-slate-950 border-slate-800 text-blue-600 focus:ring-blue-500/20 h-4 w-4"
                           />
                         </td>
                         <td className="py-3 px-3 text-center">
@@ -2555,7 +2555,7 @@ export default function ReportEditPage() {
                             disabled={isFinalized || !canEdit}
                             checked={row.isRainy}
                             onChange={(e) => handleWeatherChange(index, 'isRainy', e.target.checked)}
-                            className="rounded bg-slate-950 border-slate-800 text-blue-600 focus:ring-blue-550/20 h-4 w-4"
+                            className="rounded bg-slate-950 border-slate-800 text-blue-600 focus:ring-blue-500/20 h-4 w-4"
                           />
                         </td>
                         <td className="py-3 px-3 text-center">
@@ -2564,7 +2564,7 @@ export default function ReportEditPage() {
                             disabled={isFinalized || !canEdit}
                             checked={row.isNormal}
                             onChange={(e) => handleWeatherChange(index, 'isNormal', e.target.checked)}
-                            className="rounded bg-slate-950 border-slate-800 text-blue-600 focus:ring-blue-550/20 h-4 w-4"
+                            className="rounded bg-slate-950 border-slate-800 text-blue-600 focus:ring-blue-500/20 h-4 w-4"
                           />
                         </td>
                         <td className="py-3 px-3">
@@ -2574,7 +2574,7 @@ export default function ReportEditPage() {
                             value={row.wind || ''}
                             onChange={(e) => handleWeatherChange(index, 'wind', e.target.value)}
                             placeholder="Ví dụ: Nhẹ"
-                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-205 focus:outline-none focus:ring-1 focus:ring-blue-550 transition text-xs"
+                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 transition text-xs"
                           />
                         </td>
                         <td className="py-3 px-3">
@@ -2584,7 +2584,7 @@ export default function ReportEditPage() {
                             value={row.wave || ''}
                             onChange={(e) => handleWeatherChange(index, 'wave', e.target.value)}
                             placeholder="Ví dụ: Êm"
-                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-205 focus:outline-none focus:ring-1 focus:ring-blue-550 transition text-xs"
+                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 transition text-xs"
                           />
                         </td>
                         <td className="py-3 px-3">
@@ -2594,7 +2594,7 @@ export default function ReportEditPage() {
                             value={row.swell || ''}
                             onChange={(e) => handleWeatherChange(index, 'swell', e.target.value)}
                             placeholder="Ví dụ: Thấp"
-                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-205 focus:outline-none focus:ring-1 focus:ring-blue-550 transition text-xs"
+                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 transition text-xs"
                           />
                         </td>
                         <td className="py-3 px-3">
@@ -2604,7 +2604,7 @@ export default function ReportEditPage() {
                             value={row.note || ''}
                             onChange={(e) => handleWeatherChange(index, 'note', e.target.value)}
                             placeholder="Ghi chú thêm..."
-                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-205 focus:outline-none focus:ring-1 focus:ring-blue-550 transition text-xs"
+                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 transition text-xs"
                           />
                         </td>
                       </tr>
@@ -2626,9 +2626,9 @@ export default function ReportEditPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-800/40 pb-3">
               <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <Users className="h-4 w-4 text-blue-500" />
+                <Users className="h-4 w-4 text-blue-400" />
                 Nhân lực thi công
               </h3>
               <div className="flex items-center gap-2">
@@ -2663,7 +2663,7 @@ export default function ReportEditPage() {
 
             {tabSuccessMsg && (
               <div className="flex items-center gap-3 rounded-lg bg-emerald-950/40 border border-emerald-800/40 p-3 text-xs text-emerald-255">
-                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-450" />
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
                 <span>{tabSuccessMsg}</span>
               </div>
             )}
@@ -2680,9 +2680,9 @@ export default function ReportEditPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left text-xs text-slate-350 table-fixed min-w-[800px]">
+                <table className="w-full border-collapse text-left text-xs text-slate-300 table-fixed min-w-[800px]">
                   <thead>
-                    <tr className="border-b border-slate-850 font-semibold text-slate-500 uppercase tracking-wider">
+                    <tr className="border-b border-slate-800/40 font-semibold text-slate-500 uppercase tracking-wider">
                       <th className="py-2.5 px-2 w-[18%]">Tên nhân sự *</th>
                       <th className="py-2.5 px-2 w-[8%] text-center">Đơn vị</th>
                       <th className="py-2.5 px-2 text-right w-[9%]">Lũy kế trước</th>
@@ -2696,7 +2696,7 @@ export default function ReportEditPage() {
                       {!isFinalized && canEdit && <th className="py-2.5 px-2 text-right w-[4%]"></th>}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-850/50">
+                  <tbody className="divide-y divide-slate-800/30">
                     {manpowerRows.map((row, index) => {
                       const prev = Number(row.previousQuantity) || 0;
                       const change = Number(row.changeQuantity) || 0;
@@ -2704,7 +2704,7 @@ export default function ReportEditPage() {
                       const isMismatch = today !== prev + change;
 
                       return (
-                        <tr key={index} className="hover:bg-slate-850/10 transition-colors">
+                        <tr key={index} className="hover:bg-slate-800/40/10 transition-colors">
                           <td className="py-2 px-1">
                             <input
                               type="text"
@@ -2712,7 +2712,7 @@ export default function ReportEditPage() {
                               value={row.name}
                               onChange={(e) => handleManpowerChange(index, 'name', e.target.value)}
                               placeholder="Ví dụ: Thợ hàn"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-white focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs font-semibold"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-semibold"
                             />
                           </td>
                           <td className="py-2 px-1">
@@ -2722,7 +2722,7 @@ export default function ReportEditPage() {
                               value={row.unit || ''}
                               onChange={(e) => handleManpowerChange(index, 'unit', e.target.value)}
                               placeholder="Người"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-205 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-center"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-center"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -2732,7 +2732,7 @@ export default function ReportEditPage() {
                               value={row.previousQuantity ?? ''}
                               onChange={(e) => handleManpowerChange(index, 'previousQuantity', e.target.value === '' ? null : Number(e.target.value))}
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-205 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -2742,7 +2742,7 @@ export default function ReportEditPage() {
                               value={row.changeQuantity ?? ''}
                               onChange={(e) => handleManpowerChange(index, 'changeQuantity', e.target.value === '' ? null : Number(e.target.value))}
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-205 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -2756,7 +2756,7 @@ export default function ReportEditPage() {
                                 className={`w-full rounded bg-slate-950/80 border py-1 px-1 text-xs text-right ${
                                   isMismatch 
                                     ? 'border-yellow-600/80 text-yellow-400 focus:ring-yellow-500' 
-                                    : 'border-slate-800 text-white focus:ring-blue-550'
+                                    : 'border-slate-800 text-white focus:ring-blue-500'
                                 }`}
                               />
                               {isMismatch && (
@@ -2775,7 +2775,7 @@ export default function ReportEditPage() {
                               value={row.managerQuantity ?? ''}
                               onChange={(e) => handleManpowerChange(index, 'managerQuantity', e.target.value === '' ? null : Number(e.target.value))}
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-350 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -2785,7 +2785,7 @@ export default function ReportEditPage() {
                               value={row.staffQuantity ?? ''}
                               onChange={(e) => handleManpowerChange(index, 'staffQuantity', e.target.value === '' ? null : Number(e.target.value))}
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-350 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -2795,7 +2795,7 @@ export default function ReportEditPage() {
                               value={row.overtimeQuantity ?? ''}
                               onChange={(e) => handleManpowerChange(index, 'overtimeQuantity', e.target.value === '' ? null : Number(e.target.value))}
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-350 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -2805,7 +2805,7 @@ export default function ReportEditPage() {
                               value={row.securityQuantity ?? ''}
                               onChange={(e) => handleManpowerChange(index, 'securityQuantity', e.target.value === '' ? null : Number(e.target.value))}
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-350 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right"
                             />
                           </td>
                           <td className="py-2 px-1">
@@ -2815,7 +2815,7 @@ export default function ReportEditPage() {
                               value={row.note || ''}
                               onChange={(e) => handleManpowerChange(index, 'note', e.target.value)}
                               placeholder="Ghi chú..."
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
                             />
                           </td>
                           {!isFinalized && canEdit && (
@@ -2823,7 +2823,7 @@ export default function ReportEditPage() {
                               <button
                                 type="button"
                                 onClick={() => handleDeleteManpowerRow(index)}
-                                className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-slate-850 hover:border-red-800 bg-slate-950/50 hover:bg-red-950/20 text-slate-450 hover:text-red-400 transition"
+                                className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-slate-800/40 hover:border-red-800 bg-slate-950/50 hover:bg-red-950/20 text-slate-400 hover:text-red-400 transition"
                                 title="Xóa dòng"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -2850,9 +2850,9 @@ export default function ReportEditPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-800/40 pb-3">
               <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-blue-500" />
+                <Wrench className="h-4 w-4 text-blue-400" />
                 Thiết bị thi công
               </h3>
               <div className="flex items-center gap-2">
@@ -2887,7 +2887,7 @@ export default function ReportEditPage() {
 
             {tabSuccessMsg && (
               <div className="flex items-center gap-3 rounded-lg bg-emerald-950/40 border border-emerald-800/40 p-3 text-xs text-emerald-255">
-                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-450" />
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
                 <span>{tabSuccessMsg}</span>
               </div>
             )}
@@ -2906,7 +2906,7 @@ export default function ReportEditPage() {
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left text-xs text-slate-355 table-fixed min-w-[800px]">
                   <thead>
-                    <tr className="border-b border-slate-850 font-semibold text-slate-500 uppercase tracking-wider">
+                    <tr className="border-b border-slate-800/40 font-semibold text-slate-500 uppercase tracking-wider">
                       <th className="py-2.5 px-2 w-[22%]">Tên thiết bị *</th>
                       <th className="py-2.5 px-2 w-[8%] text-center">Đơn vị</th>
                       <th className="py-2.5 px-2 text-right w-[9%]">Lũy kế trước</th>
@@ -2919,7 +2919,7 @@ export default function ReportEditPage() {
                       {!isFinalized && canEdit && <th className="py-2.5 px-2 text-right w-[4%]"></th>}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-850/50">
+                  <tbody className="divide-y divide-slate-800/30">
                     {equipmentRows.map((row, index) => {
                       const prev = Number(row.previousQuantity) || 0;
                       const change = Number(row.changeQuantity) || 0;
@@ -2937,7 +2937,7 @@ export default function ReportEditPage() {
                       if (isStateMismatch) warningTitle += `Hiện trạng lệch: Hoạt động (${normal}) + Sửa chữa (${repairing}) + Hỏng (${broken}) = ${normal + repairing + broken} != Hôm nay (${today}).`;
 
                       return (
-                        <tr key={index} className="hover:bg-slate-850/10 transition-colors">
+                        <tr key={index} className="hover:bg-slate-800/40/10 transition-colors">
                           <td className="py-2 px-1">
                             <input
                               type="text"
@@ -2945,7 +2945,7 @@ export default function ReportEditPage() {
                               value={row.name}
                               onChange={(e) => handleEquipmentChange(index, 'name', e.target.value)}
                               placeholder="Ví dụ: Máy xúc bánh xích"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-white focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs font-semibold"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-semibold"
                             />
                           </td>
                           <td className="py-2 px-1">
@@ -2955,7 +2955,7 @@ export default function ReportEditPage() {
                               value={row.unit || ''}
                               onChange={(e) => handleEquipmentChange(index, 'unit', e.target.value)}
                               placeholder="Chiếc"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-205 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-center"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-center"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -2965,7 +2965,7 @@ export default function ReportEditPage() {
                               value={row.previousQuantity ?? ''}
                               onChange={(e) => handleEquipmentChange(index, 'previousQuantity', e.target.value === '' ? null : Number(e.target.value))}
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-205 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -2975,7 +2975,7 @@ export default function ReportEditPage() {
                               value={row.changeQuantity ?? ''}
                               onChange={(e) => handleEquipmentChange(index, 'changeQuantity', e.target.value === '' ? null : Number(e.target.value))}
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-205 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -2989,7 +2989,7 @@ export default function ReportEditPage() {
                                 className={`w-full rounded bg-slate-950/80 border py-1 px-1 text-xs text-right ${
                                   hasWarning 
                                     ? 'border-yellow-600/80 text-yellow-450 focus:ring-yellow-500' 
-                                    : 'border-slate-800 text-white focus:ring-blue-550'
+                                    : 'border-slate-800 text-white focus:ring-blue-500'
                                 }`}
                               />
                               {hasWarning && (
@@ -3008,7 +3008,7 @@ export default function ReportEditPage() {
                               value={row.normalQuantity ?? ''}
                               onChange={(e) => handleEquipmentChange(index, 'normalQuantity', e.target.value === '' ? null : Number(e.target.value))}
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-350 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -3018,7 +3018,7 @@ export default function ReportEditPage() {
                               value={row.repairingQuantity ?? ''}
                               onChange={(e) => handleEquipmentChange(index, 'repairingQuantity', e.target.value === '' ? null : Number(e.target.value))}
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-350 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -3028,7 +3028,7 @@ export default function ReportEditPage() {
                               value={row.brokenQuantity ?? ''}
                               onChange={(e) => handleEquipmentChange(index, 'brokenQuantity', e.target.value === '' ? null : Number(e.target.value))}
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-350 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right"
                             />
                           </td>
                           <td className="py-2 px-1">
@@ -3038,7 +3038,7 @@ export default function ReportEditPage() {
                               value={row.note || ''}
                               onChange={(e) => handleEquipmentChange(index, 'note', e.target.value)}
                               placeholder="Ghi chú..."
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
                             />
                           </td>
                           {!isFinalized && canEdit && (
@@ -3046,7 +3046,7 @@ export default function ReportEditPage() {
                               <button
                                 type="button"
                                 onClick={() => handleDeleteEquipmentRow(index)}
-                                className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-slate-850 hover:border-red-800 bg-slate-950/50 hover:bg-red-950/20 text-slate-450 hover:text-red-400 transition"
+                                className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-slate-800/40 hover:border-red-800 bg-slate-950/50 hover:bg-red-950/20 text-slate-400 hover:text-red-400 transition"
                                 title="Xóa dòng"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -3073,9 +3073,9 @@ export default function ReportEditPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-800/40 pb-3">
               <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <Package className="h-4 w-4 text-blue-500" />
+                <Package className="h-4 w-4 text-blue-400" />
                 Vật liệu nhập kho
               </h3>
               <div className="flex items-center gap-2">
@@ -3110,7 +3110,7 @@ export default function ReportEditPage() {
 
             {tabSuccessMsg && (
               <div className="flex items-center gap-3 rounded-lg bg-emerald-950/40 border border-emerald-800/40 p-3 text-xs text-emerald-255">
-                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-450" />
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
                 <span>{tabSuccessMsg}</span>
               </div>
             )}
@@ -3127,9 +3127,9 @@ export default function ReportEditPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left text-xs text-slate-350 table-fixed min-w-[700px]">
+                <table className="w-full border-collapse text-left text-xs text-slate-300 table-fixed min-w-[700px]">
                   <thead>
-                    <tr className="border-b border-slate-850 font-semibold text-slate-500 uppercase tracking-wider">
+                    <tr className="border-b border-slate-800/40 font-semibold text-slate-500 uppercase tracking-wider">
                       <th className="py-2.5 px-2 w-[40%]">Tên vật liệu *</th>
                       <th className="py-2.5 px-2 w-[15%] text-center">Đơn vị</th>
                       <th className="py-2.5 px-2 text-right w-[15%]">Số lượng nhập</th>
@@ -3137,9 +3137,9 @@ export default function ReportEditPage() {
                       {!isFinalized && canEdit && <th className="py-2.5 px-2 text-right w-[5%]"></th>}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-850/50">
+                  <tbody className="divide-y divide-slate-800/30">
                     {materialRows.map((row, index) => (
-                      <tr key={index} className="hover:bg-slate-850/10 transition-colors">
+                      <tr key={index} className="hover:bg-slate-800/40/10 transition-colors">
                         <td className="py-2 px-1">
                           <input
                             type="text"
@@ -3147,7 +3147,7 @@ export default function ReportEditPage() {
                             value={row.name}
                             onChange={(e) => handleMaterialChange(index, 'name', e.target.value)}
                             placeholder="Ví dụ: Cát hạt vàng"
-                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-white focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs font-semibold"
+                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-semibold"
                           />
                         </td>
                         <td className="py-2 px-1">
@@ -3157,7 +3157,7 @@ export default function ReportEditPage() {
                             value={row.unit || ''}
                             onChange={(e) => handleMaterialChange(index, 'unit', e.target.value)}
                             placeholder="m3"
-                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-205 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-center"
+                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-center"
                           />
                         </td>
                         <td className="py-2 px-1 text-right">
@@ -3167,7 +3167,7 @@ export default function ReportEditPage() {
                             value={row.quantity ?? ''}
                             onChange={(e) => handleMaterialChange(index, 'quantity', e.target.value === '' ? null : Number(e.target.value))}
                             placeholder="0"
-                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-205 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right"
+                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right"
                           />
                         </td>
                         <td className="py-2 px-1">
@@ -3177,7 +3177,7 @@ export default function ReportEditPage() {
                             value={row.note || ''}
                             onChange={(e) => handleMaterialChange(index, 'note', e.target.value)}
                             placeholder="Ghi chú nhập..."
-                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs"
+                            className="w-full rounded bg-slate-950/80 border border-slate-800 py-1.5 px-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
                           />
                         </td>
                         {!isFinalized && canEdit && (
@@ -3185,7 +3185,7 @@ export default function ReportEditPage() {
                             <button
                               type="button"
                               onClick={() => handleDeleteMaterialRow(index)}
-                              className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-slate-850 hover:border-red-800 bg-slate-950/50 hover:bg-red-950/20 text-slate-455 hover:text-red-400 transition"
+                              className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-slate-800/40 hover:border-red-800 bg-slate-950/50 hover:bg-red-950/20 text-slate-455 hover:text-red-400 transition"
                               title="Xóa dòng"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -3211,9 +3211,9 @@ export default function ReportEditPage() {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-850 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/40 pb-3">
               <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <Layers className="h-4 w-4 text-blue-500" />
+                <Layers className="h-4 w-4 text-blue-400" />
                 Khối lượng hạng mục thi công
               </h3>
               <div className="flex items-center gap-2 flex-wrap">
@@ -3255,7 +3255,7 @@ export default function ReportEditPage() {
 
             {tabSuccessMsg && (
               <div className="flex items-center gap-3 rounded-lg bg-emerald-950/40 border border-emerald-800/40 p-3 text-xs text-emerald-255">
-                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-450" />
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
                 <span>{tabSuccessMsg}</span>
               </div>
             )}
@@ -3271,10 +3271,10 @@ export default function ReportEditPage() {
                 <p className="text-3xs text-slate-500 mt-1 mb-3">Bấm nút &quot;Thêm dòng&quot; hoặc &quot;Nhập từ Excel&quot; để tạo hạng mục mới</p>
               </div>
             ) : (
-              <div className="overflow-x-auto border border-slate-850 rounded-xl bg-slate-950/20">
-                <table className="w-full border-collapse text-left text-xs text-slate-350 min-w-[1200px]">
+              <div className="overflow-x-auto border border-slate-800/40 rounded-xl bg-slate-950/20">
+                <table className="w-full border-collapse text-left text-xs text-slate-300 min-w-[1200px]">
                   <thead>
-                    <tr className="border-b border-slate-850 font-semibold text-slate-500 uppercase tracking-wider bg-slate-900/40">
+                    <tr className="border-b border-slate-800/40 font-semibold text-slate-500 uppercase tracking-wider bg-slate-900/40">
                       <th className="py-2.5 px-2 w-[12%] text-center">Hành động</th>
                       <th className="py-2.5 px-2 w-[8%]">Mã hiệu</th>
                       <th className="py-2.5 px-2 w-[24%]">Hạng mục công việc *</th>
@@ -3288,7 +3288,7 @@ export default function ReportEditPage() {
                       <th className="py-2.5 px-2 w-[10%]">Ghi chú</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-850/40">
+                  <tbody className="divide-y divide-slate-800/40/40">
                     {workItemRows.map((row, index) => {
                       const current = row.currentAccumulatedQuantity || 0;
                       const percent = row.completionPercent || 0;
@@ -3297,7 +3297,7 @@ export default function ReportEditPage() {
                       return (
                         <tr
                           key={index}
-                          className={`hover:bg-slate-850/10 transition-colors ${
+                          className={`hover:bg-slate-800/40/10 transition-colors ${
                             isGroup ? 'bg-slate-900/20 font-bold text-white' : ''
                           }`}
                         >
@@ -3360,7 +3360,7 @@ export default function ReportEditPage() {
                               value={row.code || ''}
                               onChange={(e) => handleWorkItemChange(index, 'code', e.target.value)}
                               placeholder="Mã..."
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs font-mono"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-mono"
                             />
                           </td>
                           <td className="py-2 px-1">
@@ -3369,7 +3369,7 @@ export default function ReportEditPage() {
                               className="flex items-center gap-1.5"
                             >
                               {isGroup && (
-                                <span className="text-blue-450 select-none">📁</span>
+                                <span className="text-blue-400 select-none">📁</span>
                               )}
                               <input
                                 type="text"
@@ -3377,7 +3377,7 @@ export default function ReportEditPage() {
                                 value={row.name}
                                 onChange={(e) => handleWorkItemChange(index, 'name', e.target.value)}
                                 placeholder="Tên công việc..."
-                                className={`w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs ${
+                                className={`w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs ${
                                   isGroup ? 'text-white font-bold' : 'text-slate-200'
                                 }`}
                               />
@@ -3390,7 +3390,7 @@ export default function ReportEditPage() {
                               value={row.unit || ''}
                               onChange={(e) => handleWorkItemChange(index, 'unit', e.target.value)}
                               placeholder="Đơn vị"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-center disabled:opacity-30 disabled:cursor-not-allowed"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-center disabled:opacity-30 disabled:cursor-not-allowed"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -3406,7 +3406,7 @@ export default function ReportEditPage() {
                                 )
                               }
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right disabled:opacity-30 disabled:cursor-not-allowed font-medium"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right disabled:opacity-30 disabled:cursor-not-allowed font-medium"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -3422,7 +3422,7 @@ export default function ReportEditPage() {
                                 )
                               }
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right disabled:opacity-30 disabled:cursor-not-allowed"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right disabled:opacity-30 disabled:cursor-not-allowed"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -3438,7 +3438,7 @@ export default function ReportEditPage() {
                                 )
                               }
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-white focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs text-right disabled:opacity-30 disabled:cursor-not-allowed font-semibold"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-right disabled:opacity-30 disabled:cursor-not-allowed font-semibold"
                             />
                           </td>
                           <td className="py-2 px-1 text-right">
@@ -3447,7 +3447,7 @@ export default function ReportEditPage() {
                               disabled
                               value={current || ''}
                               placeholder="0"
-                              className="w-full rounded bg-slate-950/30 border border-slate-850 py-1 px-1.5 text-slate-400 text-xs text-right cursor-not-allowed font-medium"
+                              className="w-full rounded bg-slate-950/30 border border-slate-800/40 py-1 px-1.5 text-slate-400 text-xs text-right cursor-not-allowed font-medium"
                             />
                           </td>
                           <td className="py-2 px-1 text-right text-slate-300 font-semibold pr-2">
@@ -3462,7 +3462,7 @@ export default function ReportEditPage() {
                                 handleWorkItemChange(index, 'personInCharge', e.target.value)
                               }
                               placeholder="Tên..."
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
                             />
                           </td>
                           <td className="py-2 px-1">
@@ -3472,7 +3472,7 @@ export default function ReportEditPage() {
                               value={row.note || ''}
                               onChange={(e) => handleWorkItemChange(index, 'note', e.target.value)}
                               placeholder="Ghi chú..."
-                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-355 focus:outline-none focus:ring-1 focus:ring-blue-550 text-xs"
+                              className="w-full rounded bg-slate-950/80 border border-slate-800 py-1 px-1.5 text-slate-355 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
                             />
                           </td>
                         </tr>
@@ -3495,9 +3495,9 @@ export default function ReportEditPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-800/40 pb-3">
               <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <ImageIcon className="h-4 w-4 text-blue-500" />
+                <ImageIcon className="h-4 w-4 text-blue-400" />
                 Hình ảnh thi công & Sơ họa
               </h3>
               {!isFinalized && canEdit && reportImages.length > 0 && (
@@ -3521,7 +3521,7 @@ export default function ReportEditPage() {
 
             {tabSuccessMsg && (
               <div className="flex items-center gap-3 rounded-lg bg-emerald-950/40 border border-emerald-800/40 p-3 text-xs text-emerald-255">
-                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-450" />
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
                 <span>{tabSuccessMsg}</span>
               </div>
             )}
@@ -3534,8 +3534,8 @@ export default function ReportEditPage() {
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                       {isUploading ? (
                         <>
-                          <Loader2 className="w-8 h-8 mb-3 animate-spin text-blue-500" />
-                          <p className="text-xs text-slate-350 font-medium">Đang xử lý và tải ảnh lên...</p>
+                          <Loader2 className="w-8 h-8 mb-3 animate-spin text-blue-400" />
+                          <p className="text-xs text-slate-300 font-medium">Đang xử lý và tải ảnh lên...</p>
                         </>
                       ) : (
                         <>
@@ -3543,7 +3543,7 @@ export default function ReportEditPage() {
                           <p className="mb-2 text-xs text-slate-300 font-semibold">
                             Kéo thả hoặc Click để tải hình ảnh lên
                           </p>
-                          <p className="text-3xs text-slate-550">JPEG, PNG, WEBP (Tối đa 5MB mỗi ảnh, có thể chọn nhiều ảnh)</p>
+                          <p className="text-3xs text-slate-500">JPEG, PNG, WEBP (Tối đa 5MB mỗi ảnh, có thể chọn nhiều ảnh)</p>
                         </>
                       )}
                     </div>
@@ -3587,7 +3587,7 @@ export default function ReportEditPage() {
                   return (
                     <div
                       key={img.id}
-                      className="bg-slate-950/40 border border-slate-850 rounded-xl overflow-hidden flex flex-col group hover:border-slate-750 transition"
+                      className="bg-slate-950/40 border border-slate-800/40 rounded-xl overflow-hidden flex flex-col group hover:border-slate-750 transition"
                     >
                       {/* Image Preview Container */}
                       <div className="h-40 bg-slate-950 relative overflow-hidden flex items-center justify-center">
@@ -3621,7 +3621,7 @@ export default function ReportEditPage() {
                             value={img.caption || ''}
                             onChange={(e) => handleImageCaptionChange(index, e.target.value)}
                             placeholder="Nhập chú thích ảnh..."
-                            className="w-full rounded bg-slate-950 border border-slate-850 py-1.5 px-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-550 transition font-medium"
+                            className="w-full rounded bg-slate-950 border border-slate-800/40 py-1.5 px-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition font-medium"
                           />
                         </div>
 
@@ -3632,7 +3632,7 @@ export default function ReportEditPage() {
                               <button
                                 onClick={() => handleMoveImage(index, 'up')}
                                 disabled={index === 0}
-                                className="h-7 w-7 inline-flex items-center justify-center rounded border border-slate-850 hover:border-slate-700 bg-slate-950/20 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                                className="h-7 w-7 inline-flex items-center justify-center rounded border border-slate-800/40 hover:border-slate-700 bg-slate-950/20 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
                                 title="Di chuyển lên"
                               >
                                 ←
@@ -3640,7 +3640,7 @@ export default function ReportEditPage() {
                               <button
                                 onClick={() => handleMoveImage(index, 'down')}
                                 disabled={index === reportImages.length - 1}
-                                className="h-7 w-7 inline-flex items-center justify-center rounded border border-slate-850 hover:border-slate-700 bg-slate-950/20 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                                className="h-7 w-7 inline-flex items-center justify-center rounded border border-slate-800/40 hover:border-slate-700 bg-slate-950/20 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
                                 title="Di chuyển xuống"
                               >
                                 →
@@ -3649,7 +3649,7 @@ export default function ReportEditPage() {
 
                             <button
                               onClick={() => void handleDeleteImage(img.id)}
-                              className="h-7 w-7 inline-flex items-center justify-center rounded border border-slate-850 hover:border-red-800/80 bg-slate-950/20 hover:bg-red-950/20 text-slate-500 hover:text-red-400 transition cursor-pointer"
+                              className="h-7 w-7 inline-flex items-center justify-center rounded border border-slate-800/40 hover:border-red-800/80 bg-slate-950/20 hover:bg-red-950/20 text-slate-500 hover:text-red-400 transition cursor-pointer"
                               title="Xóa hình ảnh"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -3670,112 +3670,123 @@ export default function ReportEditPage() {
           <div className="space-y-6">
             {/* Alerts */}
             {tabError && (
-              <div className="flex items-start gap-3 rounded-lg bg-red-950/50 border border-red-800/60 p-4 text-xs text-red-200">
+              <div className="flex items-start gap-3 rounded-xl bg-red-950/50 border border-red-800/60 p-4 text-xs text-red-200">
                 <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
                 <span>{tabError}</span>
               </div>
             )}
             {tabSuccessMsg && (
-              <div className="flex items-start gap-3 rounded-lg bg-emerald-950/50 border border-emerald-800/60 p-4 text-xs text-emerald-200">
-                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-450" />
+              <div className="flex items-start gap-3 rounded-xl bg-emerald-950/50 border border-emerald-800/60 p-4 text-xs text-emerald-200">
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
                 <span>{tabSuccessMsg}</span>
               </div>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column: Actions and History */}
-              <div className="lg:col-span-1 space-y-6">
-                <div className="bg-slate-955/40 border border-slate-850 rounded-xl p-5 space-y-4">
-                  <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                    <Send className="h-4 w-4 text-blue-500" />
-                    Kết xuất báo cáo ngày
-                  </h3>
-                  <p className="text-3xs text-slate-400">
-                    Báo cáo ngày sẽ được biên dịch sang định dạng tài liệu PDF, Excel hoặc Word bao gồm tất cả các thông tin Nhật ký công trình trong ngày.
-                  </p>
+              {/* Left Column: Export Actions & History */}
+              <div className="lg:col-span-1 space-y-5">
+                {/* Export Actions Card */}
+                <div className="bg-slate-900/40 border border-slate-800/40 rounded-xl p-5 space-y-5">
+                  <div>
+                    <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                      <Send className="h-4 w-4 text-blue-400" />
+                      Kết xuất báo cáo
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                      Biên dịch sang PDF, Excel hoặc Word bao gồm đầy đủ dữ liệu Nhật ký công trình.
+                    </p>
+                  </div>
                   
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
+                    {/* PDF Button */}
                     <button
                       onClick={handleExportPdf}
                       disabled={isExporting || isExportingExcel || isExportingWord || isExportingTxt}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 py-2 px-4 text-xs font-semibold text-white transition cursor-pointer"
+                      className="group w-full inline-flex items-center gap-3 rounded-xl bg-blue-600/15 border border-blue-500/20 hover:bg-blue-600/25 hover:border-blue-500/35 disabled:opacity-40 py-3 px-4 text-left transition-all duration-200 active:scale-[0.98] cursor-pointer"
                     >
-                      {isExporting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Đang kết xuất PDF...
-                        </>
-                      ) : (
-                        <>
-                          Kết xuất PDF (A4)
-                        </>
-                      )}
+                      <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-600/20">
+                        <FileText className="h-4 w-4 text-white" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-blue-300 group-hover:text-blue-200 transition-colors">
+                          {isExporting ? 'Đang kết xuất...' : 'Kết xuất PDF (A4)'}
+                        </p>
+                        <p className="text-[10px] text-slate-500">Tài liệu in ấn chuẩn</p>
+                      </div>
+                      {isExporting && <Loader2 className="h-4 w-4 animate-spin text-blue-400 ml-auto shrink-0" />}
                     </button>
 
+                    {/* TXT Button (only for MESSAGE type) */}
                     {report.reportType === 'MESSAGE' && (
                       <button
                         onClick={handleExportTxt}
                         disabled={isExporting || isExportingExcel || isExportingWord || isExportingTxt}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-600 hover:bg-slate-550 disabled:bg-slate-800 disabled:opacity-50 py-2 px-4 text-xs font-semibold text-white transition cursor-pointer"
+                        className="group w-full inline-flex items-center gap-3 rounded-xl bg-slate-600/15 border border-slate-500/20 hover:bg-slate-600/25 hover:border-slate-500/35 disabled:opacity-40 py-3 px-4 text-left transition-all duration-200 active:scale-[0.98] cursor-pointer"
                       >
-                        {isExportingTxt ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Đang kết xuất TXT...
-                          </>
-                        ) : (
-                          <>
-                            Kết xuất TXT (.txt)
-                          </>
-                        )}
+                        <div className="h-9 w-9 rounded-lg bg-slate-600 flex items-center justify-center shrink-0 shadow-lg shadow-slate-600/20">
+                          <FileText className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-slate-300 group-hover:text-slate-200 transition-colors">
+                            {isExportingTxt ? 'Đang kết xuất...' : 'Kết xuất TXT (.txt)'}
+                          </p>
+                          <p className="text-[10px] text-slate-500">Văn bản thuần túy</p>
+                        </div>
+                        {isExportingTxt && <Loader2 className="h-4 w-4 animate-spin text-slate-400 ml-auto shrink-0" />}
                       </button>
                     )}
 
+                    {/* Excel Button */}
                     <button
                       onClick={handleExportExcel}
                       disabled={isExporting || isExportingExcel || isExportingWord || isExportingTxt}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-555 disabled:bg-emerald-800 disabled:opacity-50 py-2 px-4 text-xs font-semibold text-white transition cursor-pointer"
+                      className="group w-full inline-flex items-center gap-3 rounded-xl bg-emerald-600/15 border border-emerald-500/20 hover:bg-emerald-600/25 hover:border-emerald-500/35 disabled:opacity-40 py-3 px-4 text-left transition-all duration-200 active:scale-[0.98] cursor-pointer"
                     >
-                      {isExportingExcel ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Đang kết xuất Excel...
-                        </>
-                      ) : (
-                        <>
-                          Kết xuất Excel (.xlsx)
-                        </>
-                      )}
+                      <div className="h-9 w-9 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-600/20">
+                        <Layers className="h-4 w-4 text-white" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-emerald-300 group-hover:text-emerald-200 transition-colors">
+                          {isExportingExcel ? 'Đang kết xuất...' : 'Kết xuất Excel (.xlsx)'}
+                        </p>
+                        <p className="text-[10px] text-slate-500">Bảng tính dữ liệu</p>
+                      </div>
+                      {isExportingExcel && <Loader2 className="h-4 w-4 animate-spin text-emerald-400 ml-auto shrink-0" />}
                     </button>
 
+                    {/* Word Button */}
                     <button
                       onClick={handleExportWord}
                       disabled={isExporting || isExportingExcel || isExportingWord || isExportingTxt}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-550 disabled:bg-indigo-850 disabled:opacity-50 py-2 px-4 text-xs font-semibold text-white transition cursor-pointer"
+                      className="group w-full inline-flex items-center gap-3 rounded-xl bg-indigo-600/15 border border-indigo-500/20 hover:bg-indigo-600/25 hover:border-indigo-500/35 disabled:opacity-40 py-3 px-4 text-left transition-all duration-200 active:scale-[0.98] cursor-pointer"
                     >
-                      {isExportingWord ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Đang kết xuất Word...
-                        </>
-                      ) : (
-                        <>
-                          Kết xuất Word (.docx)
-                        </>
-                      )}
+                      <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-600/20">
+                        <FileText className="h-4 w-4 text-white" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-indigo-300 group-hover:text-indigo-200 transition-colors">
+                          {isExportingWord ? 'Đang kết xuất...' : 'Kết xuất Word (.docx)'}
+                        </p>
+                        <p className="text-[10px] text-slate-500">Tài liệu soạn thảo</p>
+                      </div>
+                      {isExportingWord && <Loader2 className="h-4 w-4 animate-spin text-indigo-400 ml-auto shrink-0" />}
                     </button>
                   </div>
                 </div>
 
-                {/* Export History list */}
-                <div className="bg-slate-950/40 border border-slate-850 rounded-xl p-5 space-y-3">
-                  <h4 className="text-xs font-bold text-slate-200">Lịch sử xuất bản</h4>
+                {/* Export History */}
+                <div className="bg-slate-900/40 border border-slate-800/40 rounded-xl p-5 space-y-3">
+                  <h4 className="text-xs font-bold text-white tracking-tight flex items-center gap-2">
+                    <History className="h-3.5 w-3.5 text-slate-400" />
+                    Lịch sử xuất bản
+                  </h4>
                   {exportHistory.length === 0 ? (
-                    <div className="text-center py-6 border border-dashed border-slate-850 rounded-lg text-3xs text-slate-500">
-                      Chưa có tệp nào được xuất bản.
+                    <div className="flex flex-col items-center justify-center py-8 border border-dashed border-slate-800/40 rounded-xl text-center">
+                      <Layers className="h-6 w-6 text-slate-700 mb-2" />
+                      <p className="text-xs text-slate-500">Chưa có tệp nào được xuất bản</p>
                     </div>
                   ) : (
-                    <div className="space-y-3.5 max-h-80 overflow-y-auto pr-1">
+                    <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
                       {exportHistory.map((exp) => {
                         const sizeMB = exp.fileSize ? (exp.fileSize / (1024 * 1024)).toFixed(2) : '---';
                         const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL
@@ -3786,39 +3797,41 @@ export default function ReportEditPage() {
                         return (
                           <div
                             key={exp.id}
-                            className="flex items-center justify-between border-b border-slate-850/60 pb-3 last:border-b-0 last:pb-0"
+                            className="group flex items-center gap-3 bg-slate-950/60 border border-slate-800/30 hover:border-slate-700/40 rounded-lg p-3 transition-all duration-200"
                           >
-                            <div className="space-y-1 min-w-0 pr-2">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className={`text-[8px] font-bold px-1.5 py-0.25 rounded border shrink-0 ${
-                                  exp.format === 'EXCEL'
-                                    ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/40'
-                                    : exp.format === 'WORD'
-                                    ? 'bg-indigo-950/40 text-indigo-400 border-indigo-800/40'
-                                    : exp.format === 'TXT'
-                                    ? 'bg-slate-950/40 text-slate-400 border-slate-800/40'
-                                    : 'bg-blue-950/40 text-blue-400 border-blue-800/40'
-                                }`}>
-                                  {exp.format || 'PDF'}
-                                </span>
-                                <p className="text-3xs font-medium text-slate-250 truncate" title={exp.fileName}>
-                                  {exp.fileName}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
+                            {/* Format icon */}
+                            <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 text-[9px] font-bold ${
+                              exp.format === 'EXCEL'
+                                ? 'bg-emerald-600/15 text-emerald-400 border border-emerald-500/20'
+                                : exp.format === 'WORD'
+                                ? 'bg-indigo-600/15 text-indigo-400 border border-indigo-500/20'
+                                : exp.format === 'TXT'
+                                ? 'bg-slate-600/15 text-slate-400 border border-slate-500/20'
+                                : 'bg-blue-600/15 text-blue-400 border border-blue-500/20'
+                            }`}>
+                              {exp.format === 'EXCEL' ? 'XLS' : exp.format === 'WORD' ? 'DOC' : exp.format || 'PDF'}
+                            </div>
+                            {/* File info */}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-medium text-slate-200 truncate" title={exp.fileName}>
+                                {exp.fileName}
+                              </p>
+                              <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
                                 <span>{sizeMB} MB</span>
-                                <span>•</span>
+                                <span className="text-slate-700">•</span>
                                 <span>{new Date(exp.createdAt).toLocaleString('vi-VN')}</span>
                               </div>
                             </div>
+                            {/* Download */}
                             <a
                               href={downloadUrl}
                               download
                               target="_blank"
                               rel="noreferrer"
-                              className="h-8 px-3 inline-flex items-center justify-center rounded bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-3xs font-medium text-slate-300 hover:text-white transition"
+                              className="h-7 w-7 inline-flex items-center justify-center rounded-lg bg-slate-800/40 hover:bg-slate-700/50 border border-slate-700/30 hover:border-slate-600/40 text-slate-400 hover:text-white transition-all duration-200 shrink-0"
+                              title="Tải về"
                             >
-                              Tải về
+                              <ArrowLeft className="h-3.5 w-3.5 rotate-[-90deg]" />
                             </a>
                           </div>
                         );
@@ -3828,14 +3841,14 @@ export default function ReportEditPage() {
                 </div>
               </div>
 
-              {/* Right Column: Live PDF-HTML Preview inside an iframe */}
+              {/* Right Column: Live A4 Preview */}
               <div className="lg:col-span-2 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-slate-300">Xem trước bản in (A4 Preview)</h4>
-                  <span className="text-[10px] text-slate-500">Mẫu báo cáo mặc định</span>
+                  <h4 className="text-xs font-bold text-white tracking-tight">Xem trước bản in (A4 Preview)</h4>
+                  <span className="text-[10px] text-slate-500 bg-slate-800/30 px-2 py-0.5 rounded-md">Mẫu báo cáo mặc định</span>
                 </div>
                 
-                <div className="border border-slate-850 rounded-xl overflow-hidden bg-white h-[650px] shadow-inner relative">
+                <div className="border border-slate-800/40 rounded-xl overflow-hidden bg-white h-[800px] relative">
                   <iframe
                     src={`${
                       process.env.NEXT_PUBLIC_API_URL
@@ -3875,23 +3888,23 @@ export default function ReportEditPage() {
                         setIsVersionModalOpen(true);
                         setSnapshotActiveTab('weather');
                       }}
-                      className="bg-slate-900 border border-slate-850 hover:border-slate-750 transition-all rounded-xl p-4 cursor-pointer group"
+                      className="bg-slate-900 border border-slate-800/40 hover:border-slate-750 transition-all rounded-xl p-4 cursor-pointer group"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-blue-450 bg-blue-950/40 border border-blue-900/30 px-2 py-0.5 rounded-full">
+                        <span className="text-xs font-bold text-blue-400 bg-blue-950/40 border border-blue-900/30 px-2 py-0.5 rounded-full">
                           Phiên bản v{v.versionNo}
                         </span>
-                        <span className="text-[10px] text-slate-550">
+                        <span className="text-[10px] text-slate-500">
                           {new Date(v.createdAt).toLocaleString('vi-VN')}
                         </span>
                       </div>
                       
-                      <p className="text-xs text-slate-350 mt-2.5 line-clamp-2">
+                      <p className="text-xs text-slate-300 mt-2.5 line-clamp-2">
                         <span className="font-semibold text-slate-200">Lý do: </span>
                         {v.changeReason || 'Không có lý do ghi nhận'}
                       </p>
                       
-                      <div className="flex items-center gap-1.5 mt-3 text-[10px] text-slate-450 border-t border-slate-850/60 pt-2 group-hover:text-slate-350 transition">
+                      <div className="flex items-center gap-1.5 mt-3 text-[10px] text-slate-400 border-t border-slate-800/40/60 pt-2 group-hover:text-slate-300 transition">
                         <User className="h-3 w-3" />
                         <span>Người tạo: {v.createdBy?.name || 'Hệ thống'}</span>
                       </div>
@@ -3905,7 +3918,7 @@ export default function ReportEditPage() {
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-blue-500" />
+                  <FileText className="h-5 w-5 text-blue-400" />
                   <h3 className="text-sm font-bold text-white">Nhật ký hoạt động chi tiết</h3>
                 </div>
                 <span className="text-[10px] text-slate-500 font-medium">
@@ -3918,7 +3931,7 @@ export default function ReportEditPage() {
                   Chưa có nhật ký hoạt động nào ghi nhận.
                 </div>
               ) : (
-                <div className="bg-slate-900 border border-slate-850 rounded-xl p-5 space-y-1.5 max-h-[600px] overflow-y-auto pr-2 divide-y divide-slate-850/50">
+                <div className="bg-slate-900 border border-slate-800/40 rounded-xl p-5 space-y-1.5 max-h-[600px] overflow-y-auto pr-2 divide-y divide-slate-800/30">
                   {auditLogs.map((log) => (
                     <div key={log.id} className="py-3 first:pt-0 last:pb-0 text-xs">
                       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -3927,8 +3940,8 @@ export default function ReportEditPage() {
                             log.action === 'CREATE_REPORT' ? 'bg-blue-950/40 text-blue-400 border border-blue-900/40' :
                             log.action === 'CREATE_ADJUSTMENT' ? 'bg-amber-950/40 text-amber-400 border border-amber-900/40' :
                             log.action === 'EXPORT_REPORT' ? 'bg-purple-950/40 text-purple-400 border border-purple-900/40' :
-                            log.action === 'UPDATE_CELL' ? 'bg-slate-800/80 text-slate-350 border border-slate-750' :
-                            'bg-slate-850 text-slate-400 border border-slate-800'
+                            log.action === 'UPDATE_CELL' ? 'bg-slate-800/80 text-slate-300 border border-slate-750' :
+                            'bg-slate-800/40 text-slate-400 border border-slate-800'
                           }`}>
                             {getActionLabel(log.action)}
                           </span>
@@ -3938,18 +3951,18 @@ export default function ReportEditPage() {
                           </span>
                         </div>
                         
-                        <span className="text-[10px] text-slate-550">
+                        <span className="text-[10px] text-slate-500">
                           {new Date(log.createdAt).toLocaleString('vi-VN')}
                         </span>
                       </div>
                       
-                      <div className="mt-2 text-slate-350 leading-relaxed pl-1">
+                      <div className="mt-2 text-slate-300 leading-relaxed pl-1">
                         {log.action === 'UPDATE_CELL' ? (
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span>Sửa bảng</span>
-                            <span className="text-slate-250 font-bold bg-slate-950/40 px-1.5 py-0.25 rounded border border-slate-800">{getEntityLabel(log.entityType)}</span>
+                            <span className="text-slate-200 font-bold bg-slate-950/40 px-1.5 py-0.25 rounded border border-slate-800">{getEntityLabel(log.entityType)}</span>
                             <span>trường</span>
-                            <span className="text-blue-450 font-bold bg-slate-950/40 px-1.5 py-0.25 rounded border border-slate-800">{getFieldLabel(log.fieldName || '')}</span>
+                            <span className="text-blue-400 font-bold bg-slate-950/40 px-1.5 py-0.25 rounded border border-slate-800">{getFieldLabel(log.fieldName || '')}</span>
                             <span>:</span>
                             {log.oldValue ? (
                               <span className="text-red-400 font-mono line-through bg-red-950/20 px-1 py-0.25 rounded">{log.oldValue}</span>
@@ -3958,7 +3971,7 @@ export default function ReportEditPage() {
                             )}
                             <span className="text-slate-500">→</span>
                             {log.newValue ? (
-                              <span className="text-emerald-450 font-mono font-bold bg-emerald-950/20 px-1 py-0.25 rounded">{log.newValue}</span>
+                              <span className="text-emerald-400 font-mono font-bold bg-emerald-950/20 px-1 py-0.25 rounded">{log.newValue}</span>
                             ) : (
                               <span className="text-slate-600 italic">Xóa</span>
                             )}
@@ -3979,8 +3992,8 @@ export default function ReportEditPage() {
       {/* Modal: Tạo bản điều chỉnh */}
       {isAdjustmentModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="p-6 border-b border-slate-850 flex items-center justify-between">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-slate-800/40 flex items-center justify-between">
               <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
                 <History className="h-5 w-5 text-amber-500" />
                 Tạo Bản Điều Chỉnh Báo Cáo
@@ -4002,7 +4015,7 @@ export default function ReportEditPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-350">
+                <label className="text-xs font-semibold text-slate-300">
                   Lý do điều chỉnh <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -4010,19 +4023,19 @@ export default function ReportEditPage() {
                   onChange={(e) => setChangeReasonText(e.target.value)}
                   placeholder="Ví dụ: Thay đổi sản lượng thực tế hôm nay theo biên bản kiểm kê..."
                   rows={4}
-                  className="w-full rounded-lg bg-slate-950 border border-slate-800 p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-550/20 focus:border-blue-550 transition text-xs"
+                  className="w-full rounded-lg bg-slate-950 border border-slate-800 p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-xs"
                 />
               </div>
             </div>
             
-            <div className="p-6 border-t border-slate-850 bg-slate-900/50 flex justify-end gap-3">
+            <div className="p-6 border-t border-slate-800/40 bg-slate-900/50 flex justify-end gap-3">
               <button
                 onClick={() => {
                   setIsAdjustmentModalOpen(false);
                   setChangeReasonText('');
                 }}
                 disabled={isSubmittingAdjustment}
-                className="inline-flex items-center justify-center rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-350 hover:text-white transition cursor-pointer"
+                className="inline-flex items-center justify-center rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
               >
                 Hủy bỏ
               </button>
@@ -4048,15 +4061,15 @@ export default function ReportEditPage() {
       {/* Modal: Xem Snapshot Phiên bản */}
       {isVersionModalOpen && selectedVersion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col h-[90vh]">
-            <div className="p-6 border-b border-slate-850 flex items-center justify-between shrink-0">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col h-[90vh]">
+            <div className="p-6 border-b border-slate-800/40 flex items-center justify-between shrink-0">
               <div>
                 <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                  <History className="h-5 w-5 text-blue-500" />
+                  <History className="h-5 w-5 text-blue-400" />
                   Xem Chi Tiết Phiên Bản v{selectedVersion.versionNo}
                 </h3>
-                <p className="text-3xs text-slate-450 mt-1">
-                  Được tạo bởi: <span className="text-slate-300 font-medium">{selectedVersion.createdBy?.name || 'Hệ thống'}</span> | Lý do: <span className="text-slate-350 italic">{selectedVersion.changeReason || 'Không ghi nhận'}</span>
+                <p className="text-3xs text-slate-400 mt-1">
+                  Được tạo bởi: <span className="text-slate-300 font-medium">{selectedVersion.createdBy?.name || 'Hệ thống'}</span> | Lý do: <span className="text-slate-300 italic">{selectedVersion.changeReason || 'Không ghi nhận'}</span>
                 </p>
               </div>
               <button
@@ -4070,7 +4083,7 @@ export default function ReportEditPage() {
               </button>
             </div>
             
-            <div className="bg-slate-950/40 border-b border-slate-850 px-6 py-2 flex gap-1.5 overflow-x-auto scrollbar-none shrink-0">
+            <div className="bg-slate-950/40 border-b border-slate-800/40 px-6 py-2 flex gap-1.5 overflow-x-auto scrollbar-none shrink-0">
               {[
                 { key: 'weather', label: 'Thời tiết' },
                 { key: 'manpower', label: 'Nhân lực' },
@@ -4085,7 +4098,7 @@ export default function ReportEditPage() {
                   className={`px-3 py-1.5 rounded-lg text-3xs font-semibold transition cursor-pointer ${
                     snapshotActiveTab === t.key
                       ? 'bg-blue-600 text-white shadow'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850/50'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'
                   }`}
                 >
                   {t.label}
@@ -4097,13 +4110,13 @@ export default function ReportEditPage() {
               {renderSnapshotContent()}
             </div>
             
-            <div className="p-6 border-t border-slate-850 bg-slate-900/50 flex justify-end shrink-0">
+            <div className="p-6 border-t border-slate-800/40 bg-slate-900/50 flex justify-end shrink-0">
               <button
                 onClick={() => {
                   setIsVersionModalOpen(false);
                   setSelectedVersion(null);
                 }}
-                className="inline-flex items-center justify-center rounded-lg border border-slate-800 bg-slate-950 px-4 py-2 text-xs font-semibold text-slate-350 hover:text-white transition cursor-pointer"
+                className="inline-flex items-center justify-center rounded-lg border border-slate-800 bg-slate-950 px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
               >
                 Đóng lại
               </button>
@@ -4115,8 +4128,8 @@ export default function ReportEditPage() {
       {/* Excel Paste Modal */}
       {isExcelModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
-            <div className="p-6 border-b border-slate-850 flex items-center justify-between">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-slate-800/40 flex items-center justify-between">
               <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
                 <Package className="h-5 w-5 text-emerald-500" />
                 Nhập Khối Lượng từ Excel
@@ -4172,17 +4185,17 @@ export default function ReportEditPage() {
                 onChange={(e) => setExcelPasteText(e.target.value)}
                 placeholder="Dán dữ liệu Excel (Ctrl+V) tại đây..."
                 rows={10}
-                className="w-full rounded-lg bg-slate-950 border border-slate-800 p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-550/20 focus:border-blue-550 transition font-mono text-xs"
+                className="w-full rounded-lg bg-slate-950 border border-slate-800 p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition font-mono text-xs"
               />
             </div>
             
-            <div className="p-6 border-t border-slate-850 bg-slate-900/50 flex justify-end gap-3">
+            <div className="p-6 border-t border-slate-800/40 bg-slate-900/50 flex justify-end gap-3">
               <button
                 onClick={() => {
                   setIsExcelModalOpen(false);
                   setExcelPasteText('');
                 }}
-                className="inline-flex items-center justify-center rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-350 hover:text-white transition cursor-pointer"
+                className="inline-flex items-center justify-center rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
               >
                 Hủy bỏ
               </button>
@@ -4193,7 +4206,7 @@ export default function ReportEditPage() {
                   setExcelPasteText('');
                 }}
                 disabled={!excelPasteText.trim()}
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-650 hover:bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition cursor-pointer"
               >
                 <Plus className="h-4 w-4" />
                 Nhập dữ liệu

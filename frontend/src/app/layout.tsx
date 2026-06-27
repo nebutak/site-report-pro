@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/features/auth/AuthContext";
+import { ThemeProvider } from "@/features/theme/ThemeContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,6 +19,20 @@ export const metadata: Metadata = {
   description: "Hệ thống lập, quản lý và xuất báo cáo thi công công trình chuyên nghiệp",
 };
 
+// Anti-flash script: reads theme from localStorage before first paint
+const themeScript = `
+  (function() {
+    try {
+      var theme = localStorage.getItem('site-report-theme');
+      if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    } catch(e) {}
+  })();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -26,11 +41,17 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
+      data-theme="light"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning={true}
     >
-      <body className="min-h-full bg-slate-950 text-slate-100 flex flex-col" suppressHydrationWarning={true}>
-        <AuthProvider>{children}</AuthProvider>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="min-h-full bg-background text-foreground flex flex-col" suppressHydrationWarning={true}>
+        <ThemeProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
