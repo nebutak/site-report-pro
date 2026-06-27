@@ -16,6 +16,7 @@ function createPrismaClient() {
     password: decodeURIComponent(url.password || ''),
     database: url.pathname.substring(1),
     connectionLimit: 5,
+    allowPublicKeyRetrieval: true,
   };
 
   const adapter = new PrismaMariaDb(config);

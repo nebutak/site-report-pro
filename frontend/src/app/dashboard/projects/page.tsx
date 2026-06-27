@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/features/auth/AuthContext';
 import { apiClient } from '@/lib/api-client';
 import { 
@@ -9,9 +9,11 @@ import {
   MapPin, 
   Building, 
   ChevronRight, 
+  ChevronDown,
   Loader2, 
   Edit3, 
-  FolderKanban 
+  FolderKanban,
+  Check 
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -37,8 +39,29 @@ export default function ProjectsPage() {
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState('all');
   const [error, setError] = useState<string | null>(null);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const statusRef = useRef<HTMLDivElement>(null);
 
   const canManage = user?.role === 'ADMIN' || user?.role === 'PROJECT_MANAGER';
+
+  const statusOptions = [
+    { value: 'all', label: 'Tất cả trạng thái' },
+    { value: 'ACTIVE', label: 'Hoạt động' },
+    { value: 'INACTIVE', label: 'Ngưng hoạt động' },
+  ];
+
+  const selectedLabel = statusOptions.find(o => o.value === status)?.label || 'Tất cả trạng thái';
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (statusRef.current && !statusRef.current.contains(e.target as Node)) {
+        setStatusOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -69,7 +92,7 @@ export default function ProjectsPage() {
 
   // Skeleton card component
   const SkeletonCard = () => (
-    <div className="rounded-xl glass-card p-6 space-y-4">
+    <div className="rounded-xl bg-slate-900/60 border border-slate-800/40 p-6 space-y-4">
       <div className="flex items-start justify-between">
         <div className="h-14 w-14 rounded-xl bg-slate-800 animate-shimmer" />
         <div className="h-5 w-20 rounded bg-slate-800 animate-shimmer" />
@@ -88,13 +111,11 @@ export default function ProjectsPage() {
       {/* Top Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-fade-in">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10">
-              <FolderKanban className="h-5 w-5 text-blue-400" />
-            </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            <FolderKanban className="h-5 w-5 text-blue-400" />
             Danh sách dự án
           </h1>
-          <p className="text-slate-500 text-sm mt-1.5">
+          <p className="text-slate-500 text-sm mt-1">
             Quản lý và theo dõi các dự án công trình xây dựng
           </p>
         </div>
@@ -102,7 +123,7 @@ export default function ProjectsPage() {
         {canManage && (
           <Link
             href="/dashboard/projects/new"
-            className="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-600/15 hover:shadow-blue-600/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+            className="group inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 shadow-lg shadow-blue-600/15 hover:shadow-blue-600/25 active:scale-[0.98] transition-all duration-200"
           >
             <Plus className="h-4.5 w-4.5" />
             Thêm dự án
@@ -111,7 +132,7 @@ export default function ProjectsPage() {
       </div>
 
       {/* Filters Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row glass-card rounded-xl p-3 animate-fade-in-up stagger-1">
+      <div className="flex flex-col gap-3 sm:flex-row rounded-xl bg-slate-900/40 border border-slate-800/40 p-3">
         {/* Search */}
         <div className="relative flex-1">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
@@ -126,17 +147,36 @@ export default function ProjectsPage() {
           />
         </div>
 
-        {/* Status filter */}
-        <div className="w-full sm:w-48">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="block w-full rounded-xl bg-slate-950/80 border border-slate-800/60 py-2.5 px-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200 text-sm"
+        {/* Status filter — custom dropdown */}
+        <div className="w-full sm:w-52 relative" ref={statusRef}>
+          <button
+            type="button"
+            onClick={() => setStatusOpen(!statusOpen)}
+            className="flex w-full items-center justify-between rounded-xl bg-slate-950/80 border border-slate-800/60 py-2.5 px-3.5 text-sm text-slate-200 hover:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200 cursor-pointer"
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="ACTIVE">Hoạt động</option>
-            <option value="INACTIVE">Ngưng hoạt động</option>
-          </select>
+            <span>{selectedLabel}</span>
+            <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${statusOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {statusOpen && (
+            <div className="absolute z-20 mt-1.5 w-full rounded-xl bg-slate-900 border border-slate-700/60 shadow-xl shadow-black/40 overflow-hidden">
+              {statusOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => { setStatus(opt.value); setStatusOpen(false); }}
+                  className={`flex w-full items-center justify-between px-3.5 py-2.5 text-sm transition-colors duration-100 cursor-pointer ${
+                    status === opt.value
+                      ? 'bg-blue-500/10 text-blue-400'
+                      : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  {status === opt.value && <Check className="h-3.5 w-3.5 text-blue-400" />}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -150,25 +190,33 @@ export default function ProjectsPage() {
           <p className="text-sm font-semibold">{error}</p>
         </div>
       ) : projects.length === 0 ? (
-        <div className="rounded-xl glass-card p-16 text-center animate-fade-in-up">
-          <div className="relative inline-block mb-4">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center mx-auto border border-dashed border-slate-700 animate-pulse-glow">
-              <FolderKanban className="h-7 w-7 text-slate-600" />
-            </div>
+        <div className="rounded-xl bg-slate-900/40 border border-slate-800/40 p-16 text-center">
+          <div className="h-14 w-14 rounded-xl bg-slate-800/60 flex items-center justify-center mx-auto mb-4 border border-slate-700/40">
+            <FolderKanban className="h-6 w-6 text-slate-600" />
           </div>
           <h3 className="text-sm font-semibold text-slate-300">Không tìm thấy dự án</h3>
           <p className="text-xs text-slate-600 mt-1.5 max-w-xs mx-auto">
-            Hãy thử tìm kiếm với từ khóa khác hoặc tạo dự án mới.
+            Thử tìm kiếm với từ khóa khác hoặc tạo dự án mới.
           </p>
+          {canManage && (
+            <Link
+              href="/dashboard/projects/new"
+              className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Tạo dự án mới
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           {projects.map((project, idx) => {
             const logoSrc = project.logoUrl ? `${BACKEND_URL}${project.logoUrl}` : null;
+            const pastelClass = `project-card-pastel-${idx % 6}`;
             return (
               <div
                 key={project.id}
-                className={`group relative flex flex-col justify-between rounded-xl glass-card glass-card-hover p-6 transition-all duration-300 hover:-translate-y-0.5 animate-fade-in-up stagger-${Math.min(idx + 1, 6)}`}
+                className={`group relative flex flex-col justify-between rounded-xl bg-slate-900/60 border border-slate-800/40 hover:border-slate-700/60 p-6 transition-all duration-200 ${pastelClass}`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-4">
@@ -204,7 +252,7 @@ export default function ProjectsPage() {
                   </div>
 
                   <div className="mt-4">
-                    <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors duration-200">
+                    <h3 className="text-base font-bold text-white group-hover:text-blue-400 transition-colors duration-200">
                       {project.name}
                     </h3>
                   </div>

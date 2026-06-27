@@ -21,6 +21,7 @@ export class PrismaService
       password: decodeURIComponent(url.password || ''),
       database: url.pathname.substring(1),
       connectionLimit: 10,
+      allowPublicKeyRetrieval: true,
     };
 
     const adapter = new PrismaMariaDb(config);
