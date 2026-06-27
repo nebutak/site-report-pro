@@ -1359,54 +1359,160 @@ export default function ReportEditPage() {
 
   const handleImportExcelData = (pastedText: string) => {
     if (!pastedText.trim()) return;
-    const lines = pastedText.split(/\r?\n/);
+    const lines = pastedText.split(/\r?\n/).filter(line => line.trim());
     const newItems: WorkItemRow[] = [];
+
+    const normalizeHeader = (value: string) =>
+      value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/[^a-z0-9%]+/g, ' ')
+        .trim();
+
+    const parseExcelNumber = (value?: string) => {
+      if (!value) return 0;
+      const raw = value.trim();
+      if (!raw) return 0;
+      const cleaned = raw.replace(/\s/g, '');
+      const hasComma = cleaned.includes(',');
+      const hasDot = cleaned.includes('.');
+      const normalized = hasComma && hasDot
+        ? cleaned.replace(/\./g, '').replace(',', '.')
+        : hasComma
+          ? cleaned.replace(',', '.')
+          : cleaned.replace(/,/g, '');
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const splitCells = (line: string) => line.split('\t');
+    const firstCells = splitCells(lines[0] || '');
+    const hasHeader = firstCells.some(cell => {
+      const header = normalizeHeader(cell);
+      return header.includes('ten') || header.includes('noi dung') || header.includes('hang muc') || header.includes('don vi');
+    });
+
+    const headers = hasHeader ? firstCells.map(normalizeHeader) : [];
+    const findColumn = (...keywords: string[]) => {
+      if (!hasHeader) return -1;
+      return headers.findIndex(header => keywords.every(keyword => header.includes(keyword)));
+    };
+    const findColumnWhere = (predicate: (header: string) => boolean) => {
+      if (!hasHeader) return -1;
+      return headers.findIndex(predicate);
+    };
+
+    const columnMap = hasHeader
+      ? {
+          code: findColumn('tt'),
+          name: (() => {
+            const byWorkName = findColumn('ten', 'cong');
+            if (byWorkName >= 0) return byWorkName;
+            const byItem = findColumn('hang', 'muc');
+            if (byItem >= 0) return byItem;
+            return findColumn('noi', 'dung');
+          })(),
+          unit: findColumn('don', 'vi'),
+          designQuantity: findColumn('thiet', 'ke'),
+          previousAccumulatedQuantity: findColumn('luy', 'ke', 'truoc'),
+          todayQuantity: (() => {
+            const today = findColumnWhere(header => header.includes('hom') && header.includes('nay') && !header.includes('luy'));
+            if (today >= 0) return today;
+            return findColumnWhere(header => header.includes('ngay') && header.includes('nay') && !header.includes('luy'));
+          })(),
+          currentAccumulatedQuantity: findColumn('luy', 'ke', 'nay'),
+          completionPercent: (() => {
+            const percent = findColumn('%');
+            if (percent >= 0) return percent;
+            return findColumn('ty', 'le');
+          })(),
+          personInCharge: findColumn('phu', 'trach'),
+          note: findColumn('ghi', 'chu'),
+        }
+      : {
+          code: 0,
+          name: 1,
+          unit: 2,
+          designQuantity: 3,
+          previousAccumulatedQuantity: 4,
+          todayQuantity: 5,
+          currentAccumulatedQuantity: -1,
+          completionPercent: -1,
+          personInCharge: 6,
+          note: 7,
+        };
+
+    const getCell = (cells: string[], index: number) => index >= 0 ? cells[index]?.trim() || '' : '';
+    const inferLevel = (code: string, name: string) => {
+      const leadingSpaces = name.match(/^\s*/)?.[0].length || 0;
+      if (leadingSpaces >= 4) return Math.min(3, Math.floor(leadingSpaces / 2));
+      if (/^\d+(\.\d+){2,}/.test(code)) return 3;
+      if (/^\d+\.\d+/.test(code)) return 2;
+      if (/^[a-z]\.?$/i.test(code) || /^[-+]$/.test(code)) return 1;
+      return 0;
+    };
     
     let nextSortOrder = workItemRows.length > 0
       ? Math.max(...workItemRows.map(w => w.sortOrder)) + 1
       : 1;
+    const parentStack: Array<{ level: number; tempId: string }> = [];
 
-    for (const line of lines) {
+    for (const line of hasHeader ? lines.slice(1) : lines) {
       if (!line.trim()) continue;
-      const cells = line.split('\t');
+      const cells = splitCells(line);
       if (cells.length < 2) continue;
       
-      const code = cells[0]?.trim() || '';
-      const name = cells[1]?.trim() || '';
+      const code = getCell(cells, columnMap.code);
+      const rawName = columnMap.name >= 0 ? cells[columnMap.name] || '' : '';
+      const name = rawName.trim();
       
-      if (name.toLowerCase().includes('tên công việc') || name.toLowerCase().includes('tên hạng mục') || name.toLowerCase().includes('tên hạng mục công việc')) {
+      if (!name || normalizeHeader(name).includes('ten cong viec') || normalizeHeader(name).includes('ten hang muc')) {
         continue;
       }
 
-      const unit = cells[2]?.trim() || '';
-      const designQuantity = cells[3] ? Number(cells[3].replace(/,/g, '')) || 0 : 0;
-      const previousAccumulatedQuantity = cells[4] ? Number(cells[4].replace(/,/g, '')) || 0 : 0;
-      const todayQuantity = cells[5] ? Number(cells[5].replace(/,/g, '')) || 0 : 0;
-      const personInCharge = cells[6]?.trim() || '';
-      const note = cells[7]?.trim() || '';
+      const unit = getCell(cells, columnMap.unit);
+      const designQuantity = parseExcelNumber(getCell(cells, columnMap.designQuantity));
+      const previousAccumulatedQuantity = parseExcelNumber(getCell(cells, columnMap.previousAccumulatedQuantity));
+      const todayQuantity = parseExcelNumber(getCell(cells, columnMap.todayQuantity));
+      const currentFromExcel = parseExcelNumber(getCell(cells, columnMap.currentAccumulatedQuantity));
+      const currentAccumulatedQuantity = currentFromExcel || previousAccumulatedQuantity + todayQuantity;
+      const completionFromExcel = parseExcelNumber(getCell(cells, columnMap.completionPercent).replace('%', ''));
+      const completionPercent = completionFromExcel || (designQuantity > 0 ? (currentAccumulatedQuantity / designQuantity) * 100 : null);
+      const personInCharge = getCell(cells, columnMap.personInCharge);
+      const note = getCell(cells, columnMap.note);
 
-      const isGroup = !unit && !designQuantity && !previousAccumulatedQuantity && !todayQuantity;
+      const isGroup = !unit && !designQuantity && !previousAccumulatedQuantity && !todayQuantity && !currentFromExcel;
+      const level = inferLevel(code, rawName);
+      const tempId = `temp-excel-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      const parent = [...parentStack].reverse().find(item => item.level < level);
 
       newItems.push({
-        tempId: `temp-excel-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+        tempId,
         parentId: null,
-        tempParentId: null,
+        tempParentId: parent?.tempId || null,
         sortOrder: nextSortOrder++,
-        level: 0,
+        level,
         code,
         name,
         unit,
         designQuantity,
         previousAccumulatedQuantity,
         todayQuantity,
-        currentAccumulatedQuantity: previousAccumulatedQuantity + todayQuantity,
-        completionPercent: designQuantity > 0 ? ((previousAccumulatedQuantity + todayQuantity) / designQuantity) * 100 : null,
+        currentAccumulatedQuantity,
+        completionPercent,
         personInCharge,
         note,
         isGroup,
         isLocked: false,
         formula: null,
       });
+
+      while (parentStack.length && parentStack[parentStack.length - 1].level >= level) {
+        parentStack.pop();
+      }
+      parentStack.push({ level, tempId });
     }
 
     if (newItems.length > 0) {
@@ -1420,10 +1526,11 @@ export default function ReportEditPage() {
   // Image handlers
   const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!reportId || !e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
+    const files = Array.from(e.target.files);
     
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('Kích thước ảnh vượt quá 5MB. Vui lòng chọn ảnh nhỏ hơn.');
+    const oversized = files.find(file => file.size > 5 * 1024 * 1024);
+    if (oversized) {
+      setUploadError(`Ảnh "${oversized.name}" vượt quá 5MB. Vui lòng chọn ảnh nhỏ hơn.`);
       return;
     }
 
@@ -1431,12 +1538,12 @@ export default function ReportEditPage() {
     setIsUploading(true);
     
     const formData = new FormData();
-    formData.append('file', file);
+    files.forEach(file => formData.append('files', file));
 
     try {
-      const response = await apiClient.post<ReportImage>(`/reports/${reportId}/images`, formData);
-      setReportImages([...reportImages, response]);
-      setTabSuccessMsg('Tải lên hình ảnh thành công!');
+      const response = await apiClient.post<ReportImage[]>(`/reports/${reportId}/images/bulk`, formData);
+      setReportImages([...reportImages, ...response]);
+      setTabSuccessMsg(`Tải lên ${response.length} hình ảnh thành công!`);
     } catch (err) {
       const apiError = err as { message?: string };
       setUploadError(apiError.message || 'Lỗi khi tải ảnh lên');
@@ -3396,7 +3503,7 @@ export default function ReportEditPage() {
                           <p className="mb-2 text-xs text-slate-300 font-semibold">
                             Kéo thả hoặc Click để tải hình ảnh lên
                           </p>
-                          <p className="text-3xs text-slate-550">JPEG, PNG, WEBP (Tối đa 5MB)</p>
+                          <p className="text-3xs text-slate-550">JPEG, PNG, WEBP (Tối đa 5MB mỗi ảnh, có thể chọn nhiều ảnh)</p>
                         </>
                       )}
                     </div>
@@ -3404,6 +3511,7 @@ export default function ReportEditPage() {
                       type="file"
                       className="hidden"
                       accept="image/*"
+                      multiple
                       onChange={handleUploadImage}
                       disabled={isUploading}
                     />
@@ -3986,9 +4094,9 @@ export default function ReportEditPage() {
             
             <div className="p-6 space-y-4">
               <p className="text-xs text-slate-400 leading-relaxed">
-                Sao chép các dòng trong Excel (hoặc Google Sheets) rồi dán trực tiếp vào khung dưới đây. Bảng dữ liệu cần theo thứ tự cột:
+                Sao chép các dòng trong Excel (hoặc Google Sheets) rồi dán trực tiếp vào khung dưới đây. Có thể dán kèm dòng tiêu đề để hệ thống tự nhận diện cột:
                 <br />
-                <span className="font-mono text-emerald-400 font-bold">Mã hiệu | Tên công việc | Đơn vị | KL Thiết kế | Lũy kế trước | Hôm nay | Người phụ trách | Ghi chú</span>
+                <span className="font-mono text-emerald-400 font-bold">TT/Mã | Tên/Nội dung công việc | Đơn vị | KL Thiết kế | Lũy kế trước | Hôm nay | Lũy kế hôm nay | % | Ghi chú</span>
               </p>
               
               <textarea

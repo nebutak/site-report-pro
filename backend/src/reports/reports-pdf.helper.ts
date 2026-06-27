@@ -169,6 +169,32 @@ export function generateDailyReportHtml(
     const morningWeather = getPeriodWeather('Sáng');
     const afternoonWeather = getPeriodWeather('Chiều');
     const eveningWeather = getPeriodWeather('Tối');
+    const dailyWeatherSummary = [
+      `Sáng: ${morningWeather.isSunny ? 'Nắng' : morningWeather.isRainy ? 'Mưa' : morningWeather.isNormal ? 'BT' : '---'}`,
+      `Chiều: ${afternoonWeather.isSunny ? 'Nắng' : afternoonWeather.isRainy ? 'Mưa' : afternoonWeather.isNormal ? 'BT' : '---'}`,
+      `Tối: ${eveningWeather.isSunny ? 'Nắng' : eveningWeather.isRainy ? 'Mưa' : eveningWeather.isNormal ? 'BT' : '---'}`,
+      morningWeather.wind || afternoonWeather.wind || eveningWeather.wind
+        ? `Gió: ${morningWeather.wind || afternoonWeather.wind || eveningWeather.wind}`
+        : '',
+      morningWeather.wave || afternoonWeather.wave || eveningWeather.wave
+        ? `Sóng: ${morningWeather.wave || afternoonWeather.wave || eveningWeather.wave}`
+        : '',
+    ].filter(Boolean).join(';   ');
+
+    if (data.reportType === 'DAILY') {
+      return `
+      <div class="daily-template-header">
+        <div class="daily-topline">
+          <div class="daily-company">${project.contractorName || 'CÔNG TY TNHH ĐTXD DACINCO'}<br/>BĐH: ${project.name}</div>
+          <div class="daily-national">CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM<br/><span>Độc lập - Tự do - Hạnh phúc</span></div>
+        </div>
+        <div class="daily-title">BÁO CÁO</div>
+        <div class="daily-subtitle">KHỐI LƯỢNG THI CÔNG NGÀY ${formatDate(data.reportDate)}</div>
+        <div class="daily-project">DỰ ÁN: ${project.name.toUpperCase()}</div>
+        <div class="daily-weather-line"><strong>A. Thời tiết:</strong> ${dailyWeatherSummary}</div>
+      </div>
+      `;
+    }
 
     return `
     <table class="pdf-header-table">
@@ -661,6 +687,57 @@ export function generateDailyReportHtml(
       font-weight: bold;
       text-align: center;
       background-color: #fafafa;
+    }
+
+    .daily-template-header {
+      margin-bottom: 10px;
+      font-size: 11px;
+    }
+
+    .daily-topline {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+
+    .daily-company,
+    .daily-national {
+      text-align: center;
+      font-weight: bold;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+
+    .daily-national span {
+      font-weight: normal;
+    }
+
+    .daily-title {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+
+    .daily-subtitle {
+      text-align: center;
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .daily-project {
+      text-align: center;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .daily-weather-line {
+      font-size: 11px;
+      margin-bottom: 8px;
     }
 
     /* Top Header Table */

@@ -19,6 +19,10 @@ import { existsSync, mkdirSync, promises as fsPromises } from 'fs';
 import { join } from 'path';
 import { generateDailyReportHtml } from './reports-pdf.helper';
 import { generateDailyReportExcel } from './reports-excel.helper';
+import {
+  generateReportExcelFromTemplate,
+  getExcelTemplateFilePrefix,
+} from './reports-excel-template.helper';
 import { generateDailyReportWord } from './reports-word.helper';
 import {
   generateDailyReportMessageText,
@@ -1771,6 +1775,36 @@ export class ReportsService {
     return created;
   }
 
+  async uploadImages(
+    reportId: number,
+    files: Express.Multer.File[],
+    userId: number,
+  ) {
+    const pendingPaths = new Set(files.map((file) => file.path).filter(Boolean));
+    try {
+      const created = [];
+      for (const file of files) {
+        const image = await this.uploadImage(reportId, file, userId);
+        pendingPaths.delete(file.path);
+        created.push(image);
+      }
+      return created;
+    } catch (err) {
+      await Promise.all(
+        Array.from(pendingPaths).map(async (path) => {
+          try {
+            if (existsSync(path)) {
+              await fsPromises.unlink(path);
+            }
+          } catch {
+            // ignore cleanup errors
+          }
+        }),
+      );
+      throw err;
+    }
+  }
+
   async updateImagesMetadata(
     reportId: number,
     dto: UpdateImagesDto,
@@ -2017,11 +2051,14 @@ export class ReportsService {
     const dateStr = report.reportDate.toISOString().slice(0, 10);
     const code = report.project.code.replace(/[^a-zA-Z0-9_-]/g, '');
     const timestamp = Date.now();
-    const fileName = `BC_KLTC_NGAY_${code}_${dateStr}_${timestamp}.xlsx`;
+    const prefix = getExcelTemplateFilePrefix(report.reportType);
+    const fileName = `${prefix}_${code}_${dateStr}_${timestamp}.xlsx`;
     const filePath = join(exportDir, fileName);
 
     try {
-      const excelBuffer = await generateDailyReportExcel(reportData);
+      const excelBuffer =
+        (await generateReportExcelFromTemplate(reportData)) ||
+        (await generateDailyReportExcel(reportData));
 
       await fsPromises.writeFile(filePath, excelBuffer);
 

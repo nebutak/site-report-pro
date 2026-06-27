@@ -13,10 +13,11 @@ import {
   ForbiddenException,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
   BadRequestException,
   Req,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import type { Request } from 'express';
@@ -316,6 +317,58 @@ export class ReportsController {
       'REPORTER',
     ]);
     return this.reportsService.uploadImage(id, file, reqUser.id);
+  }
+
+  @Post(':id/images/bulk')
+  @UseInterceptors(
+    FilesInterceptor('files', 20, {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const uploadPath = './uploads/images';
+          if (!existsSync(uploadPath)) {
+            mkdirSync(uploadPath, { recursive: true });
+          }
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          const id =
+            typeof req.params['id'] === 'string' ? req.params['id'] : 'unknown';
+          cb(null, `img-${id}-${uniqueSuffix}${ext}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
+          return cb(
+            new BadRequestException(
+              'Chỉ cho phép tải lên file ảnh (jpg, jpeg, png, webp)',
+            ),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    }),
+  )
+  uploadImages(
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFiles() files: Express.Multer.File[],
+    @CurrentUser() user: unknown,
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('Không nhận được file tải lên');
+    }
+    const reqUser = this.checkRoles(user, [
+      'ADMIN',
+      'PROJECT_MANAGER',
+      'REPORTER',
+    ]);
+    return this.reportsService.uploadImages(id, files, reqUser.id);
   }
 
   @Put(':id/images')
