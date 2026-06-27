@@ -248,6 +248,48 @@ export class ReportsController {
     return this.reportsService.getWorkItems(id);
   }
 
+  @Post(':id/work-items/import-excel')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const uploadPath = './uploads/imports';
+          if (!existsSync(uploadPath)) {
+            mkdirSync(uploadPath, { recursive: true });
+          }
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, `work-items-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (!file.originalname.toLowerCase().match(/\.(xlsx)$/)) {
+          return cb(
+            new BadRequestException('Chỉ cho phép import file Excel .xlsx'),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+      limits: {
+        fileSize: 20 * 1024 * 1024,
+      },
+    }),
+  )
+  importWorkItemsFromExcel(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: unknown,
+  ) {
+    this.checkRoles(user, ['ADMIN', 'PROJECT_MANAGER', 'REPORTER']);
+    if (!file) {
+      throw new BadRequestException('Không nhận được file Excel');
+    }
+    return this.reportsService.importWorkItemsFromExcel(file);
+  }
+
   @Put(':id/work-items')
   updateWorkItems(
     @Param('id', ParseIntPipe) id: number,

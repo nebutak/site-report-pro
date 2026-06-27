@@ -21,6 +21,14 @@ const TEMPLATE_CONFIG: Record<string, TemplateConfig> = {
     sheetName: '2.BC Ngày (Viện KTCTĐB)',
     filePrefix: 'BC_NGAY_V2',
   },
+  WEEKLY: {
+    sheetName: '4.BC Tuần',
+    filePrefix: 'BC_TUAN',
+  },
+  ADJUSTMENT: {
+    sheetName: 'DIỀU CHINH',
+    filePrefix: 'DIEU_CHINH',
+  },
 };
 
 function resolveTemplatePath(): string | null {
@@ -265,6 +273,51 @@ function fillSummarySheet(sheet: Worksheet, workbook: Workbook, data: ExportRepo
   });
 }
 
+function fillWeeklySheet(sheet: Worksheet, data: ExportReportData) {
+  const dateText = formatDate(data.reportDate);
+  setCell(
+    sheet,
+    'B4',
+    `${data.project.contractorName || 'CÔNG TY TNHH ĐTXD DACINCO'}\nBĐH: ${data.project.name}`,
+  );
+  setCell(sheet, 'G4', 'CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM\nĐộc lập - Tự do - Hạnh phúc');
+  setCell(sheet, 'B6', 'BÁO CÁO TUẦN');
+  setCell(sheet, 'B7', `KHỐI LƯỢNG THI CÔNG NGÀY ${dateText}`);
+  setCell(sheet, 'B9', `Dự án: ${data.project.name}`);
+  setCell(sheet, 'B10', `Địa điểm: ${data.project.location || ''}`);
+  setCell(sheet, 'B11', `Chủ đầu tư: ${data.project.ownerName || ''}`);
+  setCell(sheet, 'B12', `Tư vấn giám sát: ${data.project.supervisorName || ''}`);
+  setCell(sheet, 'B13', `Nhà thầu thi công: ${data.project.contractorName || ''}`);
+
+  data.workItems.slice(0, 120).forEach((row, index) => {
+    const r = 66 + index;
+    setCell(sheet, `B${r}`, row.code || (row.isGroup ? '' : index + 1));
+    setCell(sheet, `C${r}`, `${'  '.repeat(row.level)}${row.name}`);
+    setCell(sheet, `E${r}`, row.unit || '');
+    setCell(sheet, `F${r}`, toNumber(row.designQuantity));
+    setCell(sheet, `G${r}`, toNumber(row.previousAccumulatedQuantity));
+    setCell(sheet, `I${r}`, toNumber(row.todayQuantity));
+    setCell(sheet, `J${r}`, toNumber(row.currentAccumulatedQuantity));
+    setCell(sheet, `K${r}`, row.completionPercent ? toNumber(row.completionPercent) / 100 : 0);
+    setCell(sheet, `M${r}`, row.note || '');
+  });
+}
+
+function fillAdjustmentSheet(sheet: Worksheet, data: ExportReportData) {
+  const dateText = formatDate(data.reportDate);
+  setCell(sheet, 'A1', `BÁO CÁO ĐIỀU CHỈNH NGÀY ${dateText}`);
+
+  data.workItems.slice(0, 24).forEach((row, index) => {
+    const r = 5 + index;
+    setCell(sheet, `A${r}`, row.code || index + 1);
+    setCell(sheet, `B${r}`, `${'  '.repeat(row.level)}${row.name}`);
+    setCell(sheet, `C${r}`, row.unit || '');
+    setCell(sheet, `D${r}`, toNumber(row.previousAccumulatedQuantity));
+    setCell(sheet, `K${r}`, toNumber(row.todayQuantity));
+    setCell(sheet, `L${r}`, toNumber(row.currentAccumulatedQuantity));
+  });
+}
+
 export function getExcelTemplateFilePrefix(reportType: string): string {
   return TEMPLATE_CONFIG[reportType]?.filePrefix || 'BC_KLTC_NGAY';
 }
@@ -286,6 +339,10 @@ export async function generateReportExcelFromTemplate(
 
   if (data.reportType === 'DAILY') {
     fillDailySheet(sheet, data);
+  } else if (data.reportType === 'WEEKLY') {
+    fillWeeklySheet(sheet, data);
+  } else if (data.reportType === 'ADJUSTMENT') {
+    fillAdjustmentSheet(sheet, data);
   } else {
     fillSummarySheet(sheet, workbook, data);
   }

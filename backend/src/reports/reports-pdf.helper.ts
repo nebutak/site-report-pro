@@ -195,6 +195,15 @@ export function generateDailyReportHtml(
       </div>
       `;
     }
+    const defaultReportTitle =
+      data.reportType === 'V2'
+        ? 'BÁO CÁO NGÀY - V2'
+        : data.reportType === 'SUMMARY'
+          ? 'BÁO CÁO NGÀY'
+          : 'BÁO CÁO NHẬT KÝ THI CÔNG HÀNG NGÀY';
+    const defaultIssueDate = data.issueDate
+      ? data.issueDate
+      : new Date(new Date(data.reportDate).getTime() + 86400000);
 
     return `
     <table class="pdf-header-table">
@@ -263,7 +272,7 @@ export function generateDailyReportHtml(
     </table>
 
     <div class="report-title-container">
-      <h2 class="report-title">${(data.title || 'BÁO CÁO NHẬT KÝ THI CÔNG HÀNG NGÀY').toUpperCase()}</h2>
+      <h2 class="report-title">${(data.title || defaultReportTitle).toUpperCase()}</h2>
     </div>
 
     <table class="meta-weather-table">
@@ -316,7 +325,7 @@ export function generateDailyReportHtml(
       <!-- Row 6 -->
       <tr>
         <td class="meta-lbl">Ngày phát hành:</td>
-        <td class="meta-val" style="color: red; font-weight: bold;">${formatDate(data.issueDate || data.reportDate)}</td>
+        <td class="meta-val" style="color: red; font-weight: bold;">${formatDate(defaultIssueDate)}</td>
         <td style="font-weight: bold; text-align: center; background-color: #fafafa;">Tối</td>
         <td style="text-align: center; font-size: 13px;">${eveningWeather.isSunny ? '☑' : '☐'}</td>
         <td style="text-align: center; font-size: 13px;">${eveningWeather.isRainy ? '☑' : '☐'}</td>

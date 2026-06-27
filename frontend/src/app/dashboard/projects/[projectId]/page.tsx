@@ -74,7 +74,7 @@ const getLocalDateString = () => {
 
 const reportSchema = z.object({
   reportDate: z.string().min(1, { message: 'Ngày báo cáo không được để trống' }),
-  reportType: z.enum(['DAILY', 'SUMMARY', 'V2', 'MESSAGE'], {
+  reportType: z.enum(['DAILY', 'SUMMARY', 'V2', 'MESSAGE', 'WEEKLY', 'ADJUSTMENT'], {
     message: 'Vui lòng chọn loại báo cáo',
   }),
   cloneFromPrevious: z.boolean(),
@@ -264,6 +264,8 @@ export default function ProjectDetailPage() {
     if (type === 'SUMMARY') return 'Báo cáo tóm tắt';
     if (type === 'V2') return 'Báo cáo V2';
     if (type === 'MESSAGE') return 'Lời dẫn';
+    if (type === 'WEEKLY') return 'Báo cáo tuần';
+    if (type === 'ADJUSTMENT') return 'Báo cáo điều chỉnh';
     return type;
   };
 
@@ -547,6 +549,8 @@ export default function ProjectDetailPage() {
                   <option value="SUMMARY">Báo cáo tóm tắt (SUMMARY)</option>
                   <option value="V2">Báo cáo V2</option>
                   <option value="MESSAGE">Lời dẫn báo cáo (MESSAGE)</option>
+                  <option value="WEEKLY">Báo cáo tuần (WEEKLY)</option>
+                  <option value="ADJUSTMENT">Báo cáo điều chỉnh (ADJUSTMENT)</option>
                 </select>
               </div>
 

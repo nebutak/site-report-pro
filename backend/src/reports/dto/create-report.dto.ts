@@ -13,8 +13,9 @@ export class CreateReportDto {
 
   @IsString({ message: 'Loại báo cáo phải là chuỗi ký tự' })
   @IsNotEmpty({ message: 'Loại báo cáo không được để trống' })
-  @IsEnum(['DAILY', 'SUMMARY', 'V2', 'MESSAGE'], {
-    message: 'Loại báo cáo phải là DAILY, SUMMARY, V2 hoặc MESSAGE',
+  @IsEnum(['DAILY', 'SUMMARY', 'V2', 'MESSAGE', 'WEEKLY', 'ADJUSTMENT'], {
+    message:
+      'Loại báo cáo phải là DAILY, SUMMARY, V2, MESSAGE, WEEKLY hoặc ADJUSTMENT',
   })
   reportType: string;
 

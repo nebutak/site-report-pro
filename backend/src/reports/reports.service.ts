@@ -15,6 +15,7 @@ import { UpdateImagesDto } from './dto/update-images.dto';
 import { Prisma } from '@prisma/client';
 import sharp from 'sharp';
 import puppeteer from 'puppeteer';
+import { Workbook } from 'exceljs';
 import { existsSync, mkdirSync, promises as fsPromises } from 'fs';
 import { join } from 'path';
 import { generateDailyReportHtml } from './reports-pdf.helper';
@@ -1688,6 +1689,213 @@ export class ReportsService {
     });
   }
 
+  async importWorkItemsFromExcel(file: Express.Multer.File) {
+    try {
+      const workbook = new Workbook();
+      await workbook.xlsx.readFile(file.path);
+      const worksheet =
+        workbook.getWorksheet('BCD khoi luong') ||
+        workbook.getWorksheet('BCD Thiet bị') ||
+        workbook.worksheets.find((sheet) =>
+          /khoi|khối|luong|lượng|bc/i.test(sheet.name),
+        ) ||
+        workbook.worksheets[0];
+
+      if (!worksheet) {
+        throw new BadRequestException('File Excel không có sheet dữ liệu');
+      }
+
+      const normalize = (value: unknown) =>
+        String(value || '')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/đ/g, 'd')
+          .replace(/[^a-z0-9%]+/g, ' ')
+          .trim();
+      const parseNum = (value: unknown) => {
+        if (value === null || value === undefined || value === '') return 0;
+        if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+        const raw = String(value).replace(/\s/g, '');
+        const normalized =
+          raw.includes(',') && raw.includes('.')
+            ? raw.replace(/\./g, '').replace(',', '.')
+            : raw.includes(',')
+              ? raw.replace(',', '.')
+              : raw.replace(/,/g, '');
+        const num = Number(normalized);
+        return Number.isFinite(num) ? num : 0;
+      };
+      const cellValue = (row: any, col: number) => {
+        if (!col) return '';
+        const value = row.getCell(col).value;
+        if (value && typeof value === 'object') {
+          if ('text' in value) return (value as any).text;
+          if ('result' in value) return (value as any).result;
+          if ('richText' in value) {
+            return (value as any).richText.map((t: any) => t.text).join('');
+          }
+        }
+        return value ?? '';
+      };
+
+      let headerRowNumber = 0;
+      let headers: string[] = [];
+      worksheet.eachRow((row, rowNumber) => {
+        if (headerRowNumber) return;
+        const values = Array.from(
+          { length: Math.min(20, worksheet.columnCount) },
+          (_, index) => normalize(cellValue(row, index + 1)),
+        );
+        const hasName = values.some(
+          (value) =>
+            value.includes('noi dung') ||
+            value.includes('hang muc') ||
+            value.includes('ten cong viec'),
+        );
+        const hasUnit = values.some(
+          (value) => value.includes('don vi') || value === 'dvt',
+        );
+        if (hasName && hasUnit) {
+          headerRowNumber = rowNumber;
+          headers = values;
+        }
+      });
+
+      const findCol = (...keywords: string[]) => {
+        const index = headers.findIndex((header) =>
+          keywords.every((keyword) => header.includes(keyword)),
+        );
+        return index >= 0 ? index + 1 : 0;
+      };
+      const findColWhere = (predicate: (header: string) => boolean) => {
+        const index = headers.findIndex(predicate);
+        return index >= 0 ? index + 1 : 0;
+      };
+      const colMap = headerRowNumber
+        ? {
+            code: findCol('stt') || findCol('tt'),
+            name:
+              findCol('noi', 'dung') ||
+              findCol('hang', 'muc') ||
+              findCol('ten', 'cong'),
+            unit: findCol('don', 'vi') || findCol('dvt'),
+            designQuantity: findCol('thiet', 'ke'),
+            previousAccumulatedQuantity: findCol('luy', 'ke', 'truoc'),
+            todayQuantity: findColWhere(
+              (header) =>
+                header.includes('hom') &&
+                header.includes('nay') &&
+                !header.includes('luy'),
+            ),
+            currentAccumulatedQuantity: findCol('luy', 'ke', 'nay'),
+            completionPercent: findCol('%') || findCol('ty', 'le'),
+            note: findCol('ghi', 'chu'),
+          }
+        : {
+            code: 1,
+            name: 2,
+            unit: 3,
+            designQuantity: 4,
+            previousAccumulatedQuantity: 5,
+            todayQuantity: 6,
+            currentAccumulatedQuantity: 7,
+            completionPercent: 8,
+            note: 9,
+          };
+
+      const rows: any[] = [];
+      const parentStack: Array<{ level: number; tempId: string }> = [];
+      const startRow = headerRowNumber ? headerRowNumber + 1 : 1;
+      for (let rowNumber = startRow; rowNumber <= worksheet.rowCount; rowNumber++) {
+        const row = worksheet.getRow(rowNumber);
+        const name = String(cellValue(row, colMap.name) || '').trim();
+        if (!name) continue;
+
+        const code = String(cellValue(row, colMap.code) || '').trim();
+        const unit = String(cellValue(row, colMap.unit) || '').trim();
+        const designQuantity = parseNum(cellValue(row, colMap.designQuantity));
+        const previousAccumulatedQuantity = parseNum(
+          cellValue(row, colMap.previousAccumulatedQuantity),
+        );
+        const todayQuantity = parseNum(cellValue(row, colMap.todayQuantity));
+        const currentFromExcel = parseNum(
+          cellValue(row, colMap.currentAccumulatedQuantity),
+        );
+        const currentAccumulatedQuantity =
+          currentFromExcel || previousAccumulatedQuantity + todayQuantity;
+        const completionFromExcel = parseNum(
+          cellValue(row, colMap.completionPercent),
+        );
+        const completionPercent =
+          completionFromExcel ||
+          (designQuantity > 0
+            ? (currentAccumulatedQuantity / designQuantity) * 100
+            : null);
+        const note = String(cellValue(row, colMap.note) || '').trim();
+        const isGroup =
+          !unit &&
+          !designQuantity &&
+          !previousAccumulatedQuantity &&
+          !todayQuantity &&
+          !currentFromExcel;
+        const level = /^[IVXLCDM]+\.?$/i.test(code)
+          ? 0
+          : /^\d+(\.\d+){2,}/.test(code)
+            ? 3
+            : /^\d+\.\d+/.test(code)
+              ? 2
+              : /^[a-z]\.?$/i.test(code) || /^[-+]$/.test(code)
+                ? 1
+                : 0;
+        const tempId = `import-${Date.now()}-${rowNumber}`;
+        const parent = [...parentStack]
+          .reverse()
+          .find((item) => item.level < level);
+
+        rows.push({
+          tempId,
+          parentId: null,
+          tempParentId: parent?.tempId || null,
+          sortOrder: rows.length + 1,
+          level,
+          code,
+          name,
+          unit,
+          designQuantity,
+          previousAccumulatedQuantity,
+          todayQuantity,
+          currentAccumulatedQuantity,
+          completionPercent,
+          personInCharge: '',
+          note,
+          isGroup,
+          isLocked: false,
+          formula: null,
+        });
+
+        while (
+          parentStack.length &&
+          parentStack[parentStack.length - 1].level >= level
+        ) {
+          parentStack.pop();
+        }
+        parentStack.push({ level, tempId });
+      }
+
+      return {
+        sheetName: worksheet.name,
+        rows,
+      };
+    } finally {
+      try {
+        await fsPromises.unlink(file.path);
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+  }
+
   async uploadImage(
     reportId: number,
     file: Express.Multer.File,
@@ -1971,6 +2179,12 @@ export class ReportsService {
       prefix = 'LOI_DAN';
     } else if (report.reportType === 'V2') {
       prefix = 'BC_V2';
+    } else if (report.reportType === 'SUMMARY') {
+      prefix = 'BCTT';
+    } else if (report.reportType === 'WEEKLY') {
+      prefix = 'BC_TUAN';
+    } else if (report.reportType === 'ADJUSTMENT') {
+      prefix = 'DIEU_CHINH';
     }
     const fileName = `${prefix}_${code}_${dateStr}_${uniqueSuffix}.pdf`;
     const filePath = join(exportDir, fileName);
@@ -2115,10 +2329,19 @@ export class ReportsService {
     const code = report.project.code.replace(/[^a-zA-Z0-9_-]/g, '');
     const timestamp = Date.now();
 
-    let fileName = `BCTT_${code}_${dateStr}_${timestamp}.docx`;
-    if (report.reportType === 'MESSAGE') {
-      fileName = `LOI_DAN_${code}_${dateStr}_${timestamp}.docx`;
-    }
+    const prefix =
+      report.reportType === 'MESSAGE'
+        ? 'LOI_DAN'
+        : report.reportType === 'DAILY'
+          ? 'BC_NGAY'
+          : report.reportType === 'V2'
+            ? 'BC_V2'
+            : report.reportType === 'WEEKLY'
+              ? 'BC_TUAN'
+              : report.reportType === 'ADJUSTMENT'
+                ? 'DIEU_CHINH'
+                : 'BCTT';
+    const fileName = `${prefix}_${code}_${dateStr}_${timestamp}.docx`;
     const filePath = join(exportDir, fileName);
 
     try {

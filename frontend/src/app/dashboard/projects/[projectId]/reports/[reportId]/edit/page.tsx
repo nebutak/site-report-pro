@@ -28,7 +28,8 @@ import {
   Lock,
   Trash2,
   Plus,
-  AlertTriangle
+  AlertTriangle,
+  Upload
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -291,6 +292,7 @@ export default function ReportEditPage() {
   const [workItemRows, setWorkItemRows] = useState<WorkItemRow[]>([]);
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
   const [excelPasteText, setExcelPasteText] = useState('');
+  const [isImportingExcelFile, setIsImportingExcelFile] = useState(false);
   const [reportImages, setReportImages] = useState<ReportImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -1515,11 +1517,49 @@ export default function ReportEditPage() {
       parentStack.push({ level, tempId });
     }
 
-    if (newItems.length > 0) {
-      const combined = [...workItemRows, ...newItems];
-      const sorted = combined.map((r, i) => ({ ...r, sortOrder: i + 1 }));
-      const recalculated = recalculateWorkItemTotals(sorted);
-      setWorkItemRows(recalculated);
+    appendImportedWorkItems(newItems);
+  };
+
+  const appendImportedWorkItems = (rows: WorkItemRow[]) => {
+    if (rows.length === 0) return;
+    const combined = [...workItemRows, ...rows];
+    const sorted = combined.map((r, i) => ({ ...r, sortOrder: i + 1 }));
+    const recalculated = recalculateWorkItemTotals(sorted);
+    setWorkItemRows(recalculated);
+  };
+
+  const handleImportExcelFile = async (file: File) => {
+    if (!reportId) return;
+    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+      setTabError('Chỉ hỗ trợ import file Excel .xlsx');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setTabError('File Excel vượt quá 20MB');
+      return;
+    }
+
+    setTabError(null);
+    setTabSuccessMsg(null);
+    setIsImportingExcelFile(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const result = await apiClient.post<{ sheetName: string; rows: WorkItemRow[] }>(
+        `/reports/${reportId}/work-items/import-excel`,
+        formData,
+      );
+      appendImportedWorkItems(result.rows);
+      setTabSuccessMsg(`Đã import ${result.rows.length} dòng từ sheet "${result.sheetName}". Kiểm tra lại dữ liệu rồi bấm Lưu hạng mục.`);
+      setIsExcelModalOpen(false);
+      setExcelPasteText('');
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setTabError(apiError.message || 'Không thể import file Excel');
+    } finally {
+      setIsImportingExcelFile(false);
     }
   };
 
@@ -4098,6 +4138,34 @@ export default function ReportEditPage() {
                 <br />
                 <span className="font-mono text-emerald-400 font-bold">TT/Mã | Tên/Nội dung công việc | Đơn vị | KL Thiết kế | Lũy kế trước | Hôm nay | Lũy kế hôm nay | % | Ghi chú</span>
               </p>
+
+              <label className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-slate-750 bg-slate-950/40 px-4 py-3 cursor-pointer hover:border-emerald-600/60 transition">
+                <div className="flex items-center gap-3 min-w-0">
+                  {isImportingExcelFile ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-emerald-500 shrink-0" />
+                  ) : (
+                    <Upload className="h-5 w-5 text-emerald-500 shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-slate-200">Import trực tiếp file .xlsx</p>
+                    <p className="text-3xs text-slate-500">Tự tìm sheet khối lượng và nhận diện cột tiếng Việt</p>
+                  </div>
+                </div>
+                <span className="text-3xs font-semibold text-emerald-400 shrink-0">Chọn file</span>
+                <input
+                  type="file"
+                  accept=".xlsx"
+                  className="hidden"
+                  disabled={isImportingExcelFile}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (file) {
+                      handleImportExcelFile(file);
+                    }
+                  }}
+                />
+              </label>
               
               <textarea
                 value={excelPasteText}
