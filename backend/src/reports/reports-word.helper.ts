@@ -38,6 +38,19 @@ function formatNumber(numInput: any): string {
   });
 }
 
+function getManpowerBreakdown(row: ExportReportData['manpowerRows'][number]) {
+  const manager = Number(row.managerQuantity || 0);
+  let staff = Number(row.staffQuantity || 0);
+  const overtime = Number(row.overtimeQuantity || 0);
+  const security = Number(row.securityQuantity || 0);
+
+  if (manager + staff + overtime + security === 0) {
+    staff = Number(row.todayQuantity || 0);
+  }
+
+  return { manager, staff, overtime, security };
+}
+
 // Helper to create a styled TextRun
 function createText(
   text: string,
@@ -518,20 +531,21 @@ export async function generateDailyReportWord(
 
   if (data.manpowerRows.length > 0) {
     data.manpowerRows.forEach((m, idx) => {
-      totalManager += Number(m.managerQuantity || 0);
-      totalStaff += Number(m.staffQuantity || 0);
-      totalOvertime += Number(m.overtimeQuantity || 0);
-      totalSecurity += Number(m.securityQuantity || 0);
+      const manpower = getManpowerBreakdown(m);
+      totalManager += manpower.manager;
+      totalStaff += manpower.staff;
+      totalOvertime += manpower.overtime;
+      totalSecurity += manpower.security;
 
       manpowerTableRows.push(
         new TableRow({
           children: [
             createCell([createParagraph([createText(String(idx + 1))], { alignment: AlignmentType.CENTER })], { widthPct: 6 }),
             createCell([createParagraph([createText(m.name)])], { widthPct: 34 }),
-            createCell([createParagraph([createText(m.managerQuantity ? formatNumber(m.managerQuantity) : '')], { alignment: AlignmentType.RIGHT })], { widthPct: 10 }),
-            createCell([createParagraph([createText(m.staffQuantity ? formatNumber(m.staffQuantity) : '')], { alignment: AlignmentType.RIGHT })], { widthPct: 10 }),
-            createCell([createParagraph([createText(m.overtimeQuantity ? formatNumber(m.overtimeQuantity) : '')], { alignment: AlignmentType.RIGHT })], { widthPct: 12 }),
-            createCell([createParagraph([createText(m.securityQuantity ? formatNumber(m.securityQuantity) : '')], { alignment: AlignmentType.RIGHT })], { widthPct: 10 }),
+            createCell([createParagraph([createText(manpower.manager ? formatNumber(manpower.manager) : '')], { alignment: AlignmentType.RIGHT })], { widthPct: 10 }),
+            createCell([createParagraph([createText(manpower.staff ? formatNumber(manpower.staff) : '')], { alignment: AlignmentType.RIGHT })], { widthPct: 10 }),
+            createCell([createParagraph([createText(manpower.overtime ? formatNumber(manpower.overtime) : '')], { alignment: AlignmentType.RIGHT })], { widthPct: 12 }),
+            createCell([createParagraph([createText(manpower.security ? formatNumber(manpower.security) : '')], { alignment: AlignmentType.RIGHT })], { widthPct: 10 }),
             createCell([createParagraph([createText(m.note || '')])], { widthPct: 18 }),
           ],
         }),

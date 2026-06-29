@@ -130,6 +130,19 @@ function formatNumber(numInput: any): string {
   });
 }
 
+function getManpowerBreakdown(row: ExportManpowerRow) {
+  const manager = Number(row.managerQuantity || 0);
+  let staff = Number(row.staffQuantity || 0);
+  const overtime = Number(row.overtimeQuantity || 0);
+  const security = Number(row.securityQuantity || 0);
+
+  if (manager + staff + overtime + security === 0) {
+    staff = Number(row.todayQuantity || 0);
+  }
+
+  return { manager, staff, overtime, security };
+}
+
 export function generateDailyReportHtml(
   data: ExportReportData,
   baseUrl: string,
@@ -373,19 +386,20 @@ export function generateDailyReportHtml(
 
   const manpowerRowsHtml = manpowerRows.length > 0
     ? manpowerRows.map((m, idx) => {
-        totalManager += Number(m.managerQuantity || 0);
-        totalStaff += Number(m.staffQuantity || 0);
-        totalOvertime += Number(m.overtimeQuantity || 0);
-        totalSecurity += Number(m.securityQuantity || 0);
+        const manpower = getManpowerBreakdown(m);
+        totalManager += manpower.manager;
+        totalStaff += manpower.staff;
+        totalOvertime += manpower.overtime;
+        totalSecurity += manpower.security;
 
         return `
           <tr>
             <td style="text-align: center;">${idx + 1}</td>
             <td>${m.name}</td>
-            <td style="text-align: right;">${m.managerQuantity ? formatNumber(m.managerQuantity) : ''}</td>
-            <td style="text-align: right;">${m.staffQuantity ? formatNumber(m.staffQuantity) : ''}</td>
-            <td style="text-align: right;">${m.overtimeQuantity ? formatNumber(m.overtimeQuantity) : ''}</td>
-            <td style="text-align: right;">${m.securityQuantity ? formatNumber(m.securityQuantity) : ''}</td>
+            <td style="text-align: right;">${manpower.manager ? formatNumber(manpower.manager) : ''}</td>
+            <td style="text-align: right;">${manpower.staff ? formatNumber(manpower.staff) : ''}</td>
+            <td style="text-align: right;">${manpower.overtime ? formatNumber(manpower.overtime) : ''}</td>
+            <td style="text-align: right;">${manpower.security ? formatNumber(manpower.security) : ''}</td>
             <td>${m.note || ''}</td>
           </tr>
         `;

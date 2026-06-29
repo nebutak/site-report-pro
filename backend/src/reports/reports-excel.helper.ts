@@ -1,6 +1,7 @@
 import { Workbook, Cell } from 'exceljs';
 import { ExportReportData } from './reports-pdf.helper';
 import { existsSync, readFileSync } from 'fs';
+import sharp from 'sharp';
 
 // Helper to read image buffer from disk safely
 function getImageBuffer(fileUrl: string): Buffer | null {
@@ -21,12 +22,34 @@ function getImageBuffer(fileUrl: string): Buffer | null {
   return null;
 }
 
-// Helper to get image type
-function getImageType(fileUrl: string): 'png' | 'gif' | 'jpeg' {
-  const lower = fileUrl.toLowerCase();
-  if (lower.endsWith('.png')) return 'png';
-  if (lower.endsWith('.gif')) return 'gif';
-  return 'jpeg';
+async function getExcelImage(
+  fileUrl: string | null | undefined,
+  maxWidth = 1200,
+  maxHeight = 900,
+): Promise<{ buffer: Buffer; extension: 'jpeg' } | null> {
+  if (!fileUrl) return null;
+
+  const source = getImageBuffer(fileUrl);
+  if (!source) return null;
+
+  try {
+    return {
+      buffer: await sharp(source)
+        .rotate()
+        .resize({
+          width: maxWidth,
+          height: maxHeight,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: 78 })
+        .toBuffer(),
+      extension: 'jpeg',
+    };
+  } catch (err) {
+    console.error('Error preparing image for Excel:', err);
+    return null;
+  }
 }
 
 export async function generateDailyReportExcel(
@@ -70,6 +93,21 @@ export async function generateDailyReportExcel(
       return 0;
     const num = Number(numInput) / 100;
     return isNaN(num) ? 0 : num;
+  };
+
+  const getManpowerBreakdown = (
+    row: ExportReportData['manpowerRows'][number],
+  ) => {
+    const manager = Number(row.managerQuantity || 0);
+    let staff = Number(row.staffQuantity || 0);
+    const overtime = Number(row.overtimeQuantity || 0);
+    const security = Number(row.securityQuantity || 0);
+
+    if (manager + staff + overtime + security === 0) {
+      staff = Number(row.todayQuantity || 0);
+    }
+
+    return { manager, staff, overtime, security };
   };
 
   // Column definitions
@@ -139,13 +177,12 @@ export async function generateDailyReportExcel(
   const logoCell = worksheet.getCell('A1');
   let hasLogo = false;
   if (data.project.logoUrl) {
-    const logoBuffer = getImageBuffer(data.project.logoUrl);
-    if (logoBuffer) {
+    const logoImage = await getExcelImage(data.project.logoUrl, 500, 300);
+    if (logoImage) {
       try {
-        const ext = getImageType(data.project.logoUrl);
         const imageId = workbook.addImage({
-          buffer: logoBuffer as any,
-          extension: ext,
+          buffer: logoImage.buffer as any,
+          extension: logoImage.extension,
         });
         worksheet.addImage(imageId, {
           tl: { col: 0, row: 0 },
@@ -502,20 +539,21 @@ export async function generateDailyReportExcel(
   if (data.manpowerRows.length > 0) {
     for (let i = 0; i < data.manpowerRows.length; i++) {
       const m = data.manpowerRows[i];
-      totalManager += Number(m.managerQuantity || 0);
-      totalStaff += Number(m.staffQuantity || 0);
-      totalOvertime += Number(m.overtimeQuantity || 0);
-      totalSecurity += Number(m.securityQuantity || 0);
+      const manpower = getManpowerBreakdown(m);
+      totalManager += manpower.manager;
+      totalStaff += manpower.staff;
+      totalOvertime += manpower.overtime;
+      totalSecurity += manpower.security;
 
       const r = worksheet.addRow([
         i + 1,
         m.name,
         '',
         '',
-        m.managerQuantity ? formatNum(m.managerQuantity) : '',
-        m.staffQuantity ? formatNum(m.staffQuantity) : '',
-        m.overtimeQuantity ? formatNum(m.overtimeQuantity) : '',
-        m.securityQuantity ? formatNum(m.securityQuantity) : '',
+        manpower.manager ? formatNum(manpower.manager) : '',
+        manpower.staff ? formatNum(manpower.staff) : '',
+        manpower.overtime ? formatNum(manpower.overtime) : '',
+        manpower.security ? formatNum(manpower.security) : '',
         m.note || '',
         '',
       ]);
@@ -535,10 +573,10 @@ export async function generateDailyReportExcel(
       styleDataCell(r.getCell(9), 'left');   // Note
       styleDataCell(r.getCell(10), 'left');
 
-      if (m.managerQuantity) r.getCell(5).numFmt = '#,##0';
-      if (m.staffQuantity) r.getCell(6).numFmt = '#,##0';
-      if (m.overtimeQuantity) r.getCell(7).numFmt = '#,##0';
-      if (m.securityQuantity) r.getCell(8).numFmt = '#,##0';
+      if (manpower.manager) r.getCell(5).numFmt = '#,##0';
+      if (manpower.staff) r.getCell(6).numFmt = '#,##0';
+      if (manpower.overtime) r.getCell(7).numFmt = '#,##0';
+      if (manpower.security) r.getCell(8).numFmt = '#,##0';
     }
 
     // Total manpower row
@@ -702,13 +740,14 @@ export async function generateDailyReportExcel(
       
       // Left image
       if (leftImg) {
-        const buf = getImageBuffer(leftImg.fileUrl);
-        if (buf) {
+        const excelImage =
+          (await getExcelImage(leftImg.fileUrl)) ||
+          (await getExcelImage(leftImg.thumbnailUrl));
+        if (excelImage) {
           try {
-            const ext = getImageType(leftImg.fileUrl);
             const imgId = workbook.addImage({
-              buffer: buf as any,
-              extension: ext,
+              buffer: excelImage.buffer as any,
+              extension: excelImage.extension,
             });
             worksheet.addImage(imgId, {
               tl: { col: 0, row: rowStart - 1 },
@@ -728,13 +767,14 @@ export async function generateDailyReportExcel(
       
       // Right image
       if (rightImg) {
-        const buf = getImageBuffer(rightImg.fileUrl);
-        if (buf) {
+        const excelImage =
+          (await getExcelImage(rightImg.fileUrl)) ||
+          (await getExcelImage(rightImg.thumbnailUrl));
+        if (excelImage) {
           try {
-            const ext = getImageType(rightImg.fileUrl);
             const imgId = workbook.addImage({
-              buffer: buf as any,
-              extension: ext,
+              buffer: excelImage.buffer as any,
+              extension: excelImage.extension,
             });
             worksheet.addImage(imgId, {
               tl: { col: 5, row: rowStart - 1 },

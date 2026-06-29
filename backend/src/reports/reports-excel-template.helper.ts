@@ -1,7 +1,10 @@
 import { Workbook, Worksheet } from 'exceljs';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { ExportReportData, ExportWeatherRow } from './reports-pdf.helper';
+import sharp from 'sharp';
+
+const MAX_TEMPLATE_SIZE_BYTES = 8 * 1024 * 1024;
 
 type TemplateConfig = {
   sheetName: string;
@@ -37,7 +40,14 @@ function resolveTemplatePath(): string | null {
     join(process.cwd(), '..', 'yeu-cau-khach-hang', 'Mau-Bao-Cao.xlsx'),
   ];
 
-  return candidates.find((path) => existsSync(path)) || null;
+  const found = candidates.find((path) => existsSync(path));
+  if (!found) return null;
+
+  // ExcelJS expands styled/image-heavy templates aggressively in memory.
+  // Use the dynamic exporter for large source templates to avoid crashing Node.
+  if (statSync(found).size > MAX_TEMPLATE_SIZE_BYTES) return null;
+
+  return found;
 }
 
 function toNumber(value: unknown): number {
@@ -127,11 +137,24 @@ function getImageBuffer(fileUrl: string): Buffer | null {
   }
 }
 
-function getImageType(fileUrl: string): 'png' | 'gif' | 'jpeg' {
-  const lower = fileUrl.toLowerCase();
-  if (lower.endsWith('.png')) return 'png';
-  if (lower.endsWith('.gif')) return 'gif';
-  return 'jpeg';
+async function getExcelImage(
+  fileUrl: string,
+): Promise<{ buffer: Buffer; extension: 'jpeg' } | null> {
+  const source = getImageBuffer(fileUrl);
+  if (!source) return null;
+
+  try {
+    return {
+      buffer: await sharp(source)
+        .rotate()
+        .resize({ width: 1200, height: 900, fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 78 })
+        .toBuffer(),
+      extension: 'jpeg',
+    };
+  } catch {
+    return null;
+  }
 }
 
 function applyWorkbookVisibility(workbook: Workbook, activeSheet: Worksheet) {
@@ -224,7 +247,11 @@ function fillDailySheet(sheet: Worksheet, data: ExportReportData) {
   });
 }
 
-function fillSummarySheet(sheet: Worksheet, workbook: Workbook, data: ExportReportData) {
+async function fillSummarySheet(
+  sheet: Worksheet,
+  workbook: Workbook,
+  data: ExportReportData,
+) {
   const reportDate = excelDate(data.reportDate);
   const issueDate = excelDate(data.issueDate || new Date(data.reportDate.getTime() + 86400000));
 
@@ -279,17 +306,17 @@ function fillSummarySheet(sheet: Worksheet, workbook: Workbook, data: ExportRepo
       setCell(sheet, `J${r}`, row.note || '');
     });
 
-  data.images.slice(0, 12).forEach((image, index) => {
-    const buffer = getImageBuffer(image.fileUrl);
+  for (const [index, image] of data.images.slice(0, 12).entries()) {
+    const excelImage = await getExcelImage(image.fileUrl);
     const baseRow = 88 + Math.floor(index / 2) * 16;
     const isRight = index % 2 === 1;
     const colStart = isRight ? 7 : 2;
     const colEnd = isRight ? 12 : 7;
 
-    if (buffer) {
+    if (excelImage) {
       const imageId = workbook.addImage({
-        buffer: buffer as any,
-        extension: getImageType(image.fileUrl),
+        buffer: excelImage.buffer as any,
+        extension: excelImage.extension,
       });
       sheet.addImage(imageId, {
         tl: { col: colStart - 1, row: baseRow - 1 },
@@ -300,7 +327,7 @@ function fillSummarySheet(sheet: Worksheet, workbook: Workbook, data: ExportRepo
 
     const captionCell = isRight ? `H${baseRow + 8}` : `C${baseRow + 8}`;
     setCell(sheet, captionCell, image.caption || `Hình ${index + 1}`);
-  });
+  }
 }
 
 function fillWeeklySheet(sheet: Worksheet, data: ExportReportData) {
@@ -375,7 +402,7 @@ export async function generateReportExcelFromTemplate(
   } else if (data.reportType === 'ADJUSTMENT') {
     fillAdjustmentSheet(sheet, data);
   } else {
-    fillSummarySheet(sheet, workbook, data);
+    await fillSummarySheet(sheet, workbook, data);
   }
 
   workbook.calcProperties.fullCalcOnLoad = true;
