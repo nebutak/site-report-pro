@@ -60,6 +60,20 @@ export class ReportsService {
     return `${yyyy}${mm}${dd}`;
   }
 
+  private ensureReportEditable(report: { status: string }, subject: string) {
+    if (['APPROVED', 'SENT', 'CANCELLED'].includes(report.status)) {
+      throw new BadRequestException(
+        `Báo cáo đã được duyệt, gửi hoặc hủy, không thể ${subject}`,
+      );
+    }
+  }
+
+  private ensureReportNotCancelled(report: { status: string }, subject: string) {
+    if (report.status === 'CANCELLED') {
+      throw new BadRequestException(`Báo cáo đã hủy, không thể ${subject}`);
+    }
+  }
+
   async create(createReportDto: CreateReportDto, userId: number) {
     const project = await this.prisma.project.findUnique({
       where: { id: createReportDto.projectId },
@@ -163,6 +177,8 @@ export class ReportsService {
 
     if (status && status !== 'all') {
       where.status = status;
+    } else if (!status) {
+      where.status = { not: 'CANCELLED' };
     }
 
     if (fromDate || toDate) {
@@ -249,12 +265,8 @@ export class ReportsService {
   async update(id: number, updateReportDto: UpdateReportDto, userId: number) {
     const report = await this.findOne(id);
 
-    // BR-004: Cannot directly modify approved/sent reports
-    if (report.status === 'APPROVED' || report.status === 'SENT') {
-      throw new BadRequestException(
-        'Báo cáo đã được duyệt hoặc gửi, không thể chỉnh sửa thông tin trực tiếp',
-      );
-    }
+    // BR-004: Cannot directly modify finalized/cancelled reports
+    this.ensureReportEditable(report, 'chỉnh sửa thông tin trực tiếp');
 
     const data: Prisma.ReportUpdateInput = {};
 
@@ -294,11 +306,13 @@ export class ReportsService {
             title: report.title,
             reportNo: report.reportNo,
             issueDate: report.issueDate,
+            messageContent: report.messageContent,
           }),
           newValue: JSON.stringify({
             title: updated.title,
             reportNo: updated.reportNo,
             issueDate: updated.issueDate,
+            messageContent: updated.messageContent,
           }),
           reason: 'Cập nhật metadata báo cáo',
         },
@@ -311,11 +325,7 @@ export class ReportsService {
   async submit(id: number, userId: number) {
     const report = await this.findOne(id);
 
-    if (report.status === 'APPROVED' || report.status === 'SENT') {
-      throw new BadRequestException(
-        'Báo cáo đã duyệt hoặc gửi, không thể nộp duyệt lại',
-      );
-    }
+    this.ensureReportEditable(report, 'nộp duyệt lại');
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.report.update({
@@ -343,6 +353,8 @@ export class ReportsService {
 
   async approve(id: number, userId: number) {
     const report = await this.findOne(id);
+
+    this.ensureReportNotCancelled(report, 'phê duyệt');
 
     if (report.status === 'SENT') {
       throw new BadRequestException(
@@ -381,6 +393,14 @@ export class ReportsService {
   async markSent(id: number, userId: number) {
     const report = await this.findOne(id);
 
+    this.ensureReportNotCancelled(report, 'đánh dấu đã gửi');
+
+    if (report.status !== 'APPROVED') {
+      throw new BadRequestException(
+        'Chỉ báo cáo đã duyệt mới có thể đánh dấu đã gửi',
+      );
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.report.update({
         where: { id },
@@ -410,6 +430,8 @@ export class ReportsService {
 
   async clone(id: number, targetDateStr: string, userId: number) {
     const sourceReport = await this.findOne(id);
+    this.ensureReportNotCancelled(sourceReport, 'sao chép báo cáo');
+
     const targetDate = this.normalizeDate(targetDateStr);
 
     // Verify uniqueness for new DAILY report
@@ -445,6 +467,7 @@ export class ReportsService {
     targetReportType?: string,
   ) {
     const source = await this.findOne(sourceId);
+    this.ensureReportNotCancelled(source, 'sao chép báo cáo');
 
     return this.prisma.$transaction(async (tx) => {
       // 1. Create Report header
@@ -636,22 +659,14 @@ export class ReportsService {
   async remove(id: number, userId: number) {
     const report = await this.findOne(id);
 
-    return this.prisma.$transaction(async (tx) => {
-      // We will perform a hard delete of reports in Phase 3 if needed, or update status.
-      // Wait, is there a soft delete or hard delete? The schema doesn't have a status = DELETED or active field in Report,
-      // so we can delete the child rows and then the report itself.
-      // Let's delete all child records first to satisfy foreign keys.
-      await tx.weatherRow.deleteMany({ where: { reportId: id } });
-      await tx.manpowerRow.deleteMany({ where: { reportId: id } });
-      await tx.equipmentRow.deleteMany({ where: { reportId: id } });
-      await tx.materialRow.deleteMany({ where: { reportId: id } });
-      await tx.workItem.deleteMany({ where: { reportId: id } });
-      await tx.reportImage.deleteMany({ where: { reportId: id } });
-      await tx.reportExport.deleteMany({ where: { reportId: id } });
-      await tx.reportVersion.deleteMany({ where: { reportId: id } });
+    if (report.status === 'CANCELLED') {
+      throw new BadRequestException('Báo cáo đã hủy trước đó');
+    }
 
-      const deleted = await tx.report.delete({
+    return this.prisma.$transaction(async (tx) => {
+      const cancelled = await tx.report.update({
         where: { id },
+        data: { status: 'CANCELLED' },
       });
 
       await tx.auditLog.create({
@@ -661,13 +676,15 @@ export class ReportsService {
           reportId: id,
           entityType: 'Report',
           entityId: id,
-          action: 'DELETE_REPORT',
-          oldValue: JSON.stringify(report),
-          reason: 'Xóa hoàn toàn báo cáo và các dữ liệu liên quan',
+          action: 'CANCEL_REPORT',
+          oldValue: report.status,
+          newValue: 'CANCELLED',
+          reason:
+            'Hủy mềm báo cáo. Dữ liệu gốc, file xuất và lịch sử chỉnh sửa được giữ lại.',
         },
       });
 
-      return deleted;
+      return cancelled;
     });
   }
 
@@ -682,11 +699,7 @@ export class ReportsService {
   async updateWeather(reportId: number, dto: UpdateWeatherDto, userId: number) {
     const report = await this.findOne(reportId);
 
-    if (report.status === 'APPROVED' || report.status === 'SENT') {
-      throw new BadRequestException(
-        'Báo cáo đã được duyệt hoặc gửi, không thể chỉnh sửa thời tiết',
-      );
-    }
+    this.ensureReportEditable(report, 'chỉnh sửa thời tiết');
 
     return this.prisma.$transaction(async (tx) => {
       const existingRows = await tx.weatherRow.findMany({
@@ -830,11 +843,7 @@ export class ReportsService {
   ) {
     const report = await this.findOne(reportId);
 
-    if (report.status === 'APPROVED' || report.status === 'SENT') {
-      throw new BadRequestException(
-        'Báo cáo đã được duyệt hoặc gửi, không thể chỉnh sửa nhân lực',
-      );
-    }
+    this.ensureReportEditable(report, 'chỉnh sửa nhân lực');
 
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.manpowerRow.findMany({
@@ -1049,11 +1058,7 @@ export class ReportsService {
   ) {
     const report = await this.findOne(reportId);
 
-    if (report.status === 'APPROVED' || report.status === 'SENT') {
-      throw new BadRequestException(
-        'Báo cáo đã được duyệt hoặc gửi, không thể chỉnh sửa thiết bị',
-      );
-    }
+    this.ensureReportEditable(report, 'chỉnh sửa thiết bị');
 
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.equipmentRow.findMany({
@@ -1253,11 +1258,7 @@ export class ReportsService {
   ) {
     const report = await this.findOne(reportId);
 
-    if (report.status === 'APPROVED' || report.status === 'SENT') {
-      throw new BadRequestException(
-        'Báo cáo đã được duyệt hoặc gửi, không thể chỉnh sửa vật liệu',
-      );
-    }
+    this.ensureReportEditable(report, 'chỉnh sửa vật liệu');
 
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.materialRow.findMany({
@@ -1380,11 +1381,7 @@ export class ReportsService {
   ) {
     const report = await this.findOne(reportId);
 
-    if (report.status === 'APPROVED' || report.status === 'SENT') {
-      throw new BadRequestException(
-        'Báo cáo đã được duyệt hoặc gửi, không thể chỉnh sửa hạng mục công việc',
-      );
-    }
+    this.ensureReportEditable(report, 'chỉnh sửa hạng mục công việc');
 
     // 1. Calculate values for group rows recursively
     // Build a children map and root items list using unique identifiers (uid)
@@ -1896,21 +1893,34 @@ export class ReportsService {
     }
   }
 
+  private normalizeImageSectionKey(sectionKey?: string): string {
+    const allowed = new Set([
+      'CONSTRUCTION_PHOTO',
+      'SKETCH',
+      'DRAWING',
+      'MAP',
+      'OTHER',
+    ]);
+    const normalized = (sectionKey || 'CONSTRUCTION_PHOTO').trim().toUpperCase();
+    return allowed.has(normalized) ? normalized : 'OTHER';
+  }
+
   async uploadImage(
     reportId: number,
     file: Express.Multer.File,
     userId: number,
+    sectionKey?: string,
   ) {
     const report = await this.findOne(reportId);
 
-    if (report.status === 'APPROVED' || report.status === 'SENT') {
+    if (['APPROVED', 'SENT', 'CANCELLED'].includes(report.status)) {
       try {
         await fsPromises.unlink(file.path);
       } catch {
         // ignore
       }
       throw new BadRequestException(
-        'Báo cáo đã được duyệt hoặc gửi, không thể tải lên hình ảnh mới',
+        'Báo cáo đã được duyệt, gửi hoặc hủy, không thể tải lên hình ảnh mới',
       );
     }
 
@@ -1955,6 +1965,7 @@ export class ReportsService {
     const created = await this.prisma.reportImage.create({
       data: {
         reportId,
+        sectionKey: this.normalizeImageSectionKey(sectionKey),
         fileUrl,
         thumbnailUrl,
         sortOrder: count + 1,
@@ -1987,12 +1998,13 @@ export class ReportsService {
     reportId: number,
     files: Express.Multer.File[],
     userId: number,
+    sectionKey?: string,
   ) {
     const pendingPaths = new Set(files.map((file) => file.path).filter(Boolean));
     try {
       const created = [];
       for (const file of files) {
-        const image = await this.uploadImage(reportId, file, userId);
+        const image = await this.uploadImage(reportId, file, userId, sectionKey);
         pendingPaths.delete(file.path);
         created.push(image);
       }
@@ -2020,11 +2032,7 @@ export class ReportsService {
   ) {
     const report = await this.findOne(reportId);
 
-    if (report.status === 'APPROVED' || report.status === 'SENT') {
-      throw new BadRequestException(
-        'Báo cáo đã được duyệt hoặc gửi, không thể cập nhật thông tin ảnh',
-      );
-    }
+    this.ensureReportEditable(report, 'cập nhật thông tin ảnh');
 
     await this.prisma.$transaction(async (tx) => {
       for (const row of dto.rows) {
@@ -2032,6 +2040,7 @@ export class ReportsService {
           where: { id: row.id, reportId },
           data: {
             caption: row.caption || null,
+            sectionKey: this.normalizeImageSectionKey(row.sectionKey),
             sortOrder: row.sortOrder,
           },
         });
@@ -2064,9 +2073,9 @@ export class ReportsService {
       throw new NotFoundException('Không tìm thấy hình ảnh yêu cầu');
     }
 
-    if (image.report.status === 'APPROVED' || image.report.status === 'SENT') {
+    if (['APPROVED', 'SENT', 'CANCELLED'].includes(image.report.status)) {
       throw new BadRequestException(
-        'Báo cáo đã được duyệt hoặc gửi, không thể xóa hình ảnh',
+        'Báo cáo đã được duyệt, gửi hoặc hủy, không thể xóa hình ảnh',
       );
     }
 
@@ -2108,7 +2117,175 @@ export class ReportsService {
     return { success: true };
   }
 
+  private numberValue(value: unknown): number {
+    if (value === null || value === undefined || value === '') return 0;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : 0;
+  }
+
+  private decimalOrNull(value: number | null): Prisma.Decimal | null {
+    return value === null ? null : new Prisma.Decimal(value);
+  }
+
+  private async recalculateWorkItemsForReport(reportId: number) {
+    const items = await this.prisma.workItem.findMany({
+      where: { reportId },
+      orderBy: [{ level: 'asc' }, { sortOrder: 'asc' }],
+    });
+
+    if (items.length === 0) return;
+
+    const childrenByParent = new Map<number | null, typeof items>();
+    for (const item of items) {
+      const parentKey = item.parentId ?? null;
+      if (!childrenByParent.has(parentKey)) {
+        childrenByParent.set(parentKey, []);
+      }
+      childrenByParent.get(parentKey)!.push(item);
+    }
+
+    type Totals = {
+      designQuantity: number;
+      previousAccumulatedQuantity: number;
+      todayQuantity: number;
+      currentAccumulatedQuantity: number;
+      completionPercent: number | null;
+    };
+
+    const totalsById = new Map<number, Totals>();
+
+    const computeTotals = (item: (typeof items)[number]): Totals => {
+      const existing = totalsById.get(item.id);
+      if (existing) return existing;
+
+      const children = childrenByParent.get(item.id) || [];
+      let totals: Totals;
+
+      if (item.isGroup && children.length > 0) {
+        const childTotals = children.map(computeTotals);
+        const designQuantity = childTotals.reduce(
+          (sum, child) => sum + child.designQuantity,
+          0,
+        );
+        const previousAccumulatedQuantity = childTotals.reduce(
+          (sum, child) => sum + child.previousAccumulatedQuantity,
+          0,
+        );
+        const todayQuantity = childTotals.reduce(
+          (sum, child) => sum + child.todayQuantity,
+          0,
+        );
+        const currentAccumulatedQuantity = childTotals.reduce(
+          (sum, child) => sum + child.currentAccumulatedQuantity,
+          0,
+        );
+
+        totals = {
+          designQuantity,
+          previousAccumulatedQuantity,
+          todayQuantity,
+          currentAccumulatedQuantity,
+          completionPercent:
+            designQuantity > 0
+              ? (currentAccumulatedQuantity / designQuantity) * 100
+              : null,
+        };
+      } else {
+        const previousAccumulatedQuantity = this.numberValue(
+          item.previousAccumulatedQuantity,
+        );
+        const todayQuantity = this.numberValue(item.todayQuantity);
+        const currentAccumulatedQuantity =
+          previousAccumulatedQuantity + todayQuantity;
+        const designQuantity = this.numberValue(item.designQuantity);
+
+        totals = {
+          designQuantity,
+          previousAccumulatedQuantity,
+          todayQuantity,
+          currentAccumulatedQuantity,
+          completionPercent:
+            designQuantity > 0
+              ? (currentAccumulatedQuantity / designQuantity) * 100
+              : null,
+        };
+      }
+
+      totalsById.set(item.id, totals);
+      return totals;
+    };
+
+    for (const item of items) {
+      computeTotals(item);
+    }
+
+    const updateOperations: Prisma.PrismaPromise<unknown>[] = [];
+
+    for (const item of items) {
+      const totals = totalsById.get(item.id);
+      if (!totals) continue;
+
+      const shouldUpdate =
+        !this.compareValues(
+          item.currentAccumulatedQuantity,
+          totals.currentAccumulatedQuantity,
+        ) ||
+        !this.compareValues(item.completionPercent, totals.completionPercent) ||
+        (item.isGroup &&
+          (!this.compareValues(item.designQuantity, totals.designQuantity) ||
+            !this.compareValues(
+              item.previousAccumulatedQuantity,
+              totals.previousAccumulatedQuantity,
+            ) ||
+            !this.compareValues(item.todayQuantity, totals.todayQuantity)));
+
+      if (!shouldUpdate) continue;
+
+      updateOperations.push(
+        this.prisma.workItem.update({
+          where: { id: item.id },
+          data: {
+            designQuantity: item.isGroup
+              ? this.decimalOrNull(totals.designQuantity)
+              : item.designQuantity,
+            previousAccumulatedQuantity: item.isGroup
+              ? this.decimalOrNull(totals.previousAccumulatedQuantity)
+              : item.previousAccumulatedQuantity,
+            todayQuantity: item.isGroup
+              ? this.decimalOrNull(totals.todayQuantity)
+              : item.todayQuantity,
+            currentAccumulatedQuantity: this.decimalOrNull(
+              totals.currentAccumulatedQuantity,
+            ),
+            completionPercent: this.decimalOrNull(totals.completionPercent),
+          },
+        }),
+      );
+    }
+
+    if (updateOperations.length > 0) {
+      await this.prisma.$transaction(updateOperations);
+    }
+  }
+
   async getReportDataForExport(reportId: number) {
+    const reportStatus = await this.prisma.report.findUnique({
+      where: { id: reportId },
+      select: { status: true },
+    });
+
+    if (!reportStatus) {
+      throw new NotFoundException('Không tìm thấy báo cáo yêu cầu');
+    }
+
+    if (reportStatus.status === 'CANCELLED') {
+      throw new BadRequestException(
+        'Báo cáo đã hủy, không thể xem trước hoặc xuất file',
+      );
+    }
+
+    await this.recalculateWorkItemsForReport(reportId);
+
     const report = await this.prisma.report.findUnique({
       where: { id: reportId },
       include: {
@@ -2140,6 +2317,12 @@ export class ReportsService {
 
     if (!report) {
       throw new NotFoundException('Không tìm thấy báo cáo yêu cầu');
+    }
+
+    if (!report.project || !report.reportDate) {
+      throw new BadRequestException(
+        'Báo cáo thiếu thông tin dự án hoặc ngày báo cáo',
+      );
     }
 
     return report;

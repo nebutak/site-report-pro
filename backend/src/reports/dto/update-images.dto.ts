@@ -17,6 +17,10 @@ export class ImageMetadataRowDto {
   @IsOptional()
   caption?: string;
 
+  @IsString({ message: 'Loại hình ảnh phải là chuỗi ký tự' })
+  @IsOptional()
+  sectionKey?: string;
+
   @IsInt({ message: 'Thứ tự sắp xếp phải là số nguyên' })
   @IsNotEmpty({ message: 'Thứ tự sắp xếp không được để trống' })
   sortOrder: number;

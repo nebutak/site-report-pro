@@ -184,7 +184,7 @@ export default function ProjectDetailPage() {
   };
 
   const handleDeleteReport = async (reportId: number) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa hoàn toàn báo cáo này và tất cả các bảng dữ liệu liên quan?')) return;
+    if (!window.confirm('Bạn có chắc chắn muốn hủy báo cáo này? Dữ liệu và lịch sử vẫn được giữ lại.')) return;
     try {
       await apiClient.delete(`/reports/${reportId}`);
       await fetchReports();
@@ -248,6 +248,12 @@ export default function ProjectDetailPage() {
         return (
           <span className="inline-flex items-center rounded-md bg-sky-500/10 px-2.5 py-0.5 text-xs font-semibold text-sky-400 border border-sky-500/20">
             Đã gửi
+          </span>
+        );
+      case 'CANCELLED':
+        return (
+          <span className="inline-flex items-center rounded-md bg-red-500/10 px-2.5 py-0.5 text-xs font-semibold text-red-400 border border-red-500/20">
+            Đã hủy
           </span>
         );
       default:
@@ -486,7 +492,7 @@ export default function ProjectDetailPage() {
                         <button
                           onClick={() => void handleDeleteReport(report.id)}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800/60 bg-slate-900/50 text-red-400 hover:text-red-300 hover:bg-red-950/20 transition cursor-pointer"
-                          title="Xóa báo cáo"
+                          title="Hủy báo cáo"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>

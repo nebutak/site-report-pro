@@ -140,6 +140,36 @@ function applyWorkbookVisibility(workbook: Workbook, activeSheet: Worksheet) {
   });
 }
 
+function canFitTemplate(data: ExportReportData): boolean {
+  if (data.reportType === 'DAILY') {
+    return (
+      data.manpowerRows.length <= 5 &&
+      data.equipmentRows.length <= 39 &&
+      data.workItems.length <= 90
+    );
+  }
+
+  if (data.reportType === 'SUMMARY' || data.reportType === 'V2') {
+    return (
+      data.equipmentRows.length <= 20 &&
+      data.materialRows.length <= 20 &&
+      data.workItems.filter((row) => !row.isGroup || row.todayQuantity).length <=
+        36 &&
+      data.images.length <= 12
+    );
+  }
+
+  if (data.reportType === 'WEEKLY') {
+    return data.workItems.length <= 120;
+  }
+
+  if (data.reportType === 'ADJUSTMENT') {
+    return data.workItems.length <= 24;
+  }
+
+  return true;
+}
+
 function fillDailySheet(sheet: Worksheet, data: ExportReportData) {
   const dateText = formatDate(data.reportDate);
   setCell(
@@ -328,6 +358,7 @@ export async function generateReportExcelFromTemplate(
   const config = TEMPLATE_CONFIG[data.reportType];
   const templatePath = resolveTemplatePath();
   if (!config || !templatePath) return null;
+  if (!canFitTemplate(data)) return null;
 
   const workbook = new Workbook();
   await workbook.xlsx.readFile(templatePath);

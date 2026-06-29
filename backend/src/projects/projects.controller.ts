@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -22,14 +23,38 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { Request } from 'express';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+
+interface RequestUser {
+  id: number;
+  name: string;
+  email: string;
+  role: {
+    id: number;
+    name: string;
+  };
+}
 
 @Controller('projects')
 @UseGuards(JwtAuthGuard)
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
+  private checkRoles(user: unknown, allowedRoles: string[]): RequestUser {
+    const reqUser = user as RequestUser;
+    const roleName = reqUser?.role?.name;
+    if (!roleName || !allowedRoles.includes(roleName)) {
+      throw new ForbiddenException('Bạn không có quyền thực hiện thao tác này');
+    }
+    return reqUser;
+  }
+
   @Post()
-  create(@Body() createProjectDto: CreateProjectDto) {
+  create(
+    @Body() createProjectDto: CreateProjectDto,
+    @CurrentUser() user: unknown,
+  ) {
+    this.checkRoles(user, ['ADMIN', 'PROJECT_MANAGER']);
     return this.projectsService.create(createProjectDto);
   }
 
@@ -55,12 +80,18 @@ export class ProjectsController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateProjectDto: UpdateProjectDto,
+    @CurrentUser() user: unknown,
   ) {
+    this.checkRoles(user, ['ADMIN', 'PROJECT_MANAGER']);
     return this.projectsService.update(id, updateProjectDto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: unknown,
+  ) {
+    this.checkRoles(user, ['ADMIN', 'PROJECT_MANAGER']);
     return this.projectsService.remove(id);
   }
 
@@ -115,7 +146,9 @@ export class ProjectsController {
   async uploadLogo(
     @Param('id', ParseIntPipe) id: number,
     @UploadedFile() file: Express.Multer.File | undefined,
+    @CurrentUser() user: unknown,
   ) {
+    this.checkRoles(user, ['ADMIN', 'PROJECT_MANAGER']);
     if (!file) {
       throw new BadRequestException('Vui lòng chọn file logo để tải lên');
     }

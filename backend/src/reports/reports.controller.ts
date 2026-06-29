@@ -347,6 +347,7 @@ export class ReportsController {
   )
   uploadImage(
     @Param('id', ParseIntPipe) id: number,
+    @Body('sectionKey') sectionKey: string | undefined,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: unknown,
   ) {
@@ -358,7 +359,7 @@ export class ReportsController {
       'PROJECT_MANAGER',
       'REPORTER',
     ]);
-    return this.reportsService.uploadImage(id, file, reqUser.id);
+    return this.reportsService.uploadImage(id, file, reqUser.id, sectionKey);
   }
 
   @Post(':id/images/bulk')
@@ -399,6 +400,7 @@ export class ReportsController {
   )
   uploadImages(
     @Param('id', ParseIntPipe) id: number,
+    @Body('sectionKey') sectionKey: string | undefined,
     @UploadedFiles() files: Express.Multer.File[],
     @CurrentUser() user: unknown,
   ) {
@@ -410,7 +412,7 @@ export class ReportsController {
       'PROJECT_MANAGER',
       'REPORTER',
     ]);
-    return this.reportsService.uploadImages(id, files, reqUser.id);
+    return this.reportsService.uploadImages(id, files, reqUser.id, sectionKey);
   }
 
   @Put(':id/images')

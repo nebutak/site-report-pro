@@ -205,6 +205,7 @@ interface ApiWorkItemRow {
 interface ReportImage {
   id: number;
   reportId: number;
+  sectionKey?: string | null;
   fileUrl: string;
   thumbnailUrl?: string | null;
   caption?: string | null;
@@ -294,6 +295,7 @@ export default function ReportEditPage() {
   const [excelPasteText, setExcelPasteText] = useState('');
   const [isImportingExcelFile, setIsImportingExcelFile] = useState(false);
   const [reportImages, setReportImages] = useState<ReportImage[]>([]);
+  const [uploadSectionKey, setUploadSectionKey] = useState('CONSTRUCTION_PHOTO');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -1578,6 +1580,7 @@ export default function ReportEditPage() {
     setIsUploading(true);
     
     const formData = new FormData();
+    formData.append('sectionKey', uploadSectionKey);
     files.forEach(file => formData.append('files', file));
 
     try {
@@ -1596,6 +1599,12 @@ export default function ReportEditPage() {
   const handleImageCaptionChange = (index: number, caption: string) => {
     const updated = [...reportImages];
     updated[index] = { ...updated[index], caption };
+    setReportImages(updated);
+  };
+
+  const handleImageSectionKeyChange = (index: number, sectionKey: string) => {
+    const updated = [...reportImages];
+    updated[index] = { ...updated[index], sectionKey };
     setReportImages(updated);
   };
 
@@ -1641,6 +1650,7 @@ export default function ReportEditPage() {
       const rows = reportImages.map(img => ({
         id: img.id,
         caption: img.caption || '',
+        sectionKey: img.sectionKey || 'CONSTRUCTION_PHOTO',
         sortOrder: img.sortOrder,
       }));
       await apiClient.put(`/reports/${reportId}/images`, { rows });
@@ -1685,7 +1695,7 @@ export default function ReportEditPage() {
 
   if (!report) return null;
 
-  const isFinalized = report.status === 'APPROVED' || report.status === 'SENT';
+  const isFinalized = ['APPROVED', 'SENT', 'CANCELLED'].includes(report.status);
 
   const renderStatusBadge = (status: string) => {
     switch (status) {
@@ -1711,6 +1721,12 @@ export default function ReportEditPage() {
         return (
           <span className="inline-flex items-center rounded-md bg-sky-500/10 px-2.5 py-0.5 text-xs font-semibold text-sky-400 border border-sky-500/20">
             Đã gửi
+          </span>
+        );
+      case 'CANCELLED':
+        return (
+          <span className="inline-flex items-center rounded-md bg-red-500/10 px-2.5 py-0.5 text-xs font-semibold text-red-400 border border-red-500/20">
+            Đã hủy
           </span>
         );
       default:
@@ -1740,6 +1756,7 @@ export default function ReportEditPage() {
       case 'UPDATE_WORK_ITEMS': return 'Cập nhật khối lượng';
       case 'EXPORT_REPORT': return 'Xuất bản file';
       case 'CREATE_ADJUSTMENT': return 'Tạo bản điều chỉnh';
+      case 'CANCEL_REPORT': return 'Hủy báo cáo';
       case 'UPDATE_CELL': return 'Sửa ô dữ liệu';
       case 'REGENERATE_MESSAGE': return 'Sinh lại lời dẫn';
       default: return action;
@@ -2331,7 +2348,7 @@ export default function ReportEditPage() {
               <div className="flex items-start gap-3 rounded-lg bg-yellow-950/40 border border-yellow-800/40 p-4 text-sm text-yellow-200">
                 <Lock className="h-5 w-5 shrink-0 text-yellow-450" />
                 <span>
-                  Báo cáo này đã được <strong>{report.status === 'APPROVED' ? 'duyệt' : 'gửi'}</strong> và bị khóa chỉnh sửa trực tiếp. Để cập nhật dữ liệu, vui lòng thực hiện &quot;Tạo bản điều chỉnh&quot; ở các Phase sau.
+                  Báo cáo này đang ở trạng thái <strong>{report.status === 'APPROVED' ? 'đã duyệt' : report.status === 'SENT' ? 'đã gửi' : 'đã hủy'}</strong> và bị khóa chỉnh sửa trực tiếp.
                 </span>
               </div>
             )}
@@ -3529,6 +3546,20 @@ export default function ReportEditPage() {
             {/* Upload Zone */}
             {!isFinalized && canEdit && (
               <div className="space-y-3">
+                <div className="flex flex-col gap-1.5 sm:max-w-xs">
+                  <label className="text-xs font-semibold text-slate-300">Loại tệp tải lên</label>
+                  <select
+                    value={uploadSectionKey}
+                    onChange={(e) => setUploadSectionKey(e.target.value)}
+                    className="rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  >
+                    <option value="CONSTRUCTION_PHOTO">Ảnh thi công</option>
+                    <option value="SKETCH">Sơ họa</option>
+                    <option value="DRAWING">Bản vẽ</option>
+                    <option value="MAP">Bản đồ</option>
+                    <option value="OTHER">Khác</option>
+                  </select>
+                </div>
                 <div className="flex items-center justify-center w-full">
                   <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-slate-800 border-dashed rounded-xl cursor-pointer bg-slate-950/20 hover:bg-slate-900/20 hover:border-slate-700 transition">
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -3623,6 +3654,18 @@ export default function ReportEditPage() {
                             placeholder="Nhập chú thích ảnh..."
                             className="w-full rounded bg-slate-950 border border-slate-800/40 py-1.5 px-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition font-medium"
                           />
+                          <select
+                            disabled={isFinalized || !canEdit}
+                            value={img.sectionKey || 'CONSTRUCTION_PHOTO'}
+                            onChange={(e) => handleImageSectionKeyChange(index, e.target.value)}
+                            className="w-full rounded bg-slate-950 border border-slate-800/40 py-1.5 px-2 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+                          >
+                            <option value="CONSTRUCTION_PHOTO">Ảnh thi công</option>
+                            <option value="SKETCH">Sơ họa</option>
+                            <option value="DRAWING">Bản vẽ</option>
+                            <option value="MAP">Bản đồ</option>
+                            <option value="OTHER">Khác</option>
+                          </select>
                         </div>
 
                         {/* Actions */}
