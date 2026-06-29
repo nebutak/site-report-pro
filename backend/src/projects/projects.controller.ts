@@ -33,6 +33,11 @@ export class ProjectsController {
     return this.projectsService.create(createProjectDto);
   }
 
+  @Get('dashboard/stats')
+  getDashboardStats() {
+    return this.projectsService.getDashboardStats();
+  }
+
   @Get()
   findAll(
     @Query('status') status?: string,

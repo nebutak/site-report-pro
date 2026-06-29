@@ -95,4 +95,24 @@ export class ProjectsService {
       data: { status: 'INACTIVE' },
     });
   }
+
+  async getDashboardStats() {
+    const totalProjects = await this.prisma.project.count({
+      where: { status: 'ACTIVE' },
+    });
+    const totalReports = await this.prisma.report.count();
+    const totalUsers = await this.prisma.user.count({
+      where: { status: 'ACTIVE' },
+    });
+    const pendingApproval = await this.prisma.report.count({
+      where: { status: 'IN_REVIEW' },
+    });
+
+    return {
+      totalProjects,
+      totalReports,
+      totalUsers,
+      pendingApproval,
+    };
+  }
 }

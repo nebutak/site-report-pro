@@ -24,19 +24,13 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats>({
-    totalProjects: 0,
-    totalReports: 0,
-    totalUsers: 0,
-    pendingApproval: 0,
-  });
+  const [stats, setStats] = useState<DashboardStats | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch real project count
-        const projects = await apiClient.get<{ id: number }[]>('/projects');
-        setStats(prev => ({ ...prev, totalProjects: projects.length }));
+        const data = await apiClient.get<DashboardStats>('/projects/dashboard/stats');
+        setStats(data);
       } catch {
         // Silently fail for dashboard stats
       }
@@ -45,10 +39,10 @@ export default function DashboardPage() {
   }, []);
 
   const statCards = [
-    { name: 'Tổng số dự án', value: String(stats.totalProjects), icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10', glow: 'shadow-blue-500/5', lightBg: 'stat-card-blue' },
-    { name: 'Báo cáo đã tạo', value: String(stats.totalReports), icon: FileText, color: 'text-emerald-400', bg: 'bg-emerald-500/10', glow: 'shadow-emerald-500/5', lightBg: 'stat-card-emerald' },
-    { name: 'Thành viên hệ thống', value: '5', icon: Users, color: 'text-slate-400', bg: 'bg-slate-500/10', glow: 'shadow-slate-500/5', lightBg: 'stat-card-purple' },
-    { name: 'Chờ phê duyệt', value: String(stats.pendingApproval), icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10', glow: 'shadow-amber-500/5', lightBg: 'stat-card-amber' },
+    { name: 'Tổng số dự án', value: stats ? String(stats.totalProjects) : '—', icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10', glow: 'shadow-blue-500/5', lightBg: 'stat-card-blue' },
+    { name: 'Báo cáo đã tạo', value: stats ? String(stats.totalReports) : '—', icon: FileText, color: 'text-emerald-400', bg: 'bg-emerald-500/10', glow: 'shadow-emerald-500/5', lightBg: 'stat-card-emerald' },
+    { name: 'Thành viên hệ thống', value: stats ? String(stats.totalUsers) : '—', icon: Users, color: 'text-slate-400', bg: 'bg-slate-500/10', glow: 'shadow-slate-500/5', lightBg: 'stat-card-purple' },
+    { name: 'Chờ phê duyệt', value: stats ? String(stats.pendingApproval) : '—', icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10', glow: 'shadow-amber-500/5', lightBg: 'stat-card-amber' },
   ];
 
   const quickActions = [
@@ -142,7 +136,7 @@ export default function DashboardPage() {
             >
               <div className="space-y-1.5">
                 <p className="text-2xs font-semibold text-slate-500 uppercase tracking-wider">{stat.name}</p>
-                <p className="text-3xl font-bold text-white tracking-tight tabular-nums">{stat.value === '0' ? '—' : stat.value}</p>
+                <p className="text-3xl font-bold text-white tracking-tight tabular-nums">{stat.value}</p>
               </div>
               <div className={`p-3.5 rounded-xl ${stat.bg} ${stat.color} ring-1 ring-inset ring-white/5`}>
                 <Icon className="h-6 w-6" />
